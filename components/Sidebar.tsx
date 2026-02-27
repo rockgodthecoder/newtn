@@ -28,7 +28,7 @@ const NAV = [
   },
 ];
 
-const COMING_SOON_COUNT = 33;
+const COMING_SOON_COUNT = 1;
 
 export default function Sidebar() {
   const pathname = usePathname();
