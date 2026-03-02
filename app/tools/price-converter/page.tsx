@@ -192,7 +192,7 @@ function StepIndicator({ current }: { current: Step }) {
     { label: "Results" },
   ];
   return (
-    <div className="flex items-center mb-8" role="navigation" aria-label="Progress">
+    <div className="flex items-center mb-5 sm:mb-8" role="navigation" aria-label="Progress">
       {steps.map((s, i) => {
         const n = (i + 1) as Step;
         const active = current === n;
@@ -432,23 +432,124 @@ export default function GlobalPriceCalculator() {
   // RENDER
   // ─────────────────────────────────────────────
 
+  // Example preview numbers for $49 USD — PPP Final (.99) pricing
+  const PREVIEW = [
+    { iso2: "US", name: "United States", price: "$49.99",  currency: "USD", home: true },
+    { iso2: "GB", name: "United Kingdom", price: "£32.99", currency: "GBP" },
+    { iso2: "IN", name: "India",          price: "₹999.99", currency: "INR" },
+    { iso2: "MY", name: "Malaysia",       price: "RM 68.99", currency: "MYR" },
+    { iso2: "NO", name: "Norway",         price: "kr 448.99", currency: "NOK" },
+    { iso2: "BR", name: "Brazil",         price: "R$121.99", currency: "BRL" },
+  ];
+
   return (
-    <div className="min-h-full p-6 lg:p-8" style={{ background: "var(--background)" }}>
-      {/* Header */}
-      <div className="mb-6">
-        <nav className="flex items-center gap-2 text-sm mb-3" style={{ color: "var(--text-secondary)" }} aria-label="Breadcrumb">
+    <div className="min-h-full p-4 sm:p-6 lg:p-8" style={{ background: "var(--background)" }}>
+
+      {/* ── HERO ── */}
+      <div className="mb-8">
+        {/* Breadcrumb */}
+        <nav className="flex items-center gap-2 text-xs mb-5" style={{ color: "var(--text-secondary)" }} aria-label="Breadcrumb">
           <Link href="/" className="hover:text-white transition-colors">Home</Link>
           <span aria-hidden>/</span>
           <span style={{ color: "var(--text-primary)" }}>Global Price Calculator</span>
         </nav>
-        <h1 style={{ color: "var(--text-primary)" }} className="text-2xl font-bold tracking-tight">
-          Global Price Calculator
-        </h1>
-        <p style={{ color: "var(--text-secondary)" }} className="mt-1 text-sm max-w-xl">
-          Upload your product CSV and get localized pricing across {COUNTRIES.length} countries using
-          World Bank PPP data and live exchange rates.
-        </p>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+          {/* Left: copy */}
+          <div>
+            <div
+              style={{ background: "var(--accent-glow)", color: "var(--accent-light)", border: "1px solid rgba(124,58,237,0.3)" }}
+              className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1 rounded-full mb-4"
+            >
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+              Pricing Tool
+            </div>
+
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight leading-tight mb-3">
+              <span style={{ color: "var(--text-primary)" }}>Stop charging the</span>
+              <br />
+              <span style={{ background: "linear-gradient(135deg, #7c3aed, #a78bfa)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+                same price everywhere
+              </span>
+            </h1>
+
+            <p style={{ color: "var(--text-secondary)" }} className="text-sm leading-relaxed mb-5 max-w-md">
+              A flat global price leaves money on the table in wealthy markets and kills conversions in emerging ones.
+              Upload your products and get <strong style={{ color: "var(--text-primary)" }}>purchasing-power-adjusted prices</strong> for {COUNTRIES.length} countries in seconds.
+            </p>
+
+            {/* Benefit pills */}
+            <div className="flex flex-wrap gap-2">
+              {[
+                { icon: "🌍", text: `${COUNTRIES.length} countries` },
+                { icon: "📊", text: "World Bank 2024 PPP" },
+                { icon: "⚡", text: "Live FX rates" },
+                { icon: "📥", text: "CSV export" },
+                { icon: "🔄", text: "4 pricing strategies" },
+              ].map((p) => (
+                <span
+                  key={p.text}
+                  style={{ background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text-secondary)" }}
+                  className="flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full"
+                >
+                  <span>{p.icon}</span>
+                  {p.text}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          {/* Right: live example card */}
+          <div
+            style={{ background: "var(--surface)", border: "1px solid var(--border)" }}
+            className="rounded-2xl p-5"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <p style={{ color: "var(--text-secondary)" }} className="text-xs">Example product priced at</p>
+                <p style={{ color: "var(--text-primary)" }} className="text-lg font-bold">$49.00 USD</p>
+              </div>
+              <span
+                style={{ background: "var(--accent-glow)", color: "var(--accent-light)", border: "1px solid rgba(124,58,237,0.25)" }}
+                className="text-[10px] font-semibold px-2.5 py-1 rounded-full"
+              >
+                PPP Final (.99) pricing
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              {PREVIEW.map((c) => (
+                <div
+                  key={c.iso2}
+                  className="rounded-xl px-3 py-2.5 flex items-center gap-2.5"
+                  style={{
+                    background: c.home ? "rgba(124,58,237,0.12)" : "var(--surface-2)",
+                    border: `1px solid ${c.home ? "rgba(124,58,237,0.3)" : "transparent"}`,
+                  }}
+                >
+                  <span className="text-base leading-none">{flag(c.iso2)}</span>
+                  <div className="min-w-0">
+                    <p style={{ color: "var(--text-secondary)" }} className="text-[10px] truncate">{c.name}</p>
+                    <p
+                      style={{ color: c.home ? "var(--accent-light)" : "var(--text-primary)" }}
+                      className="text-sm font-bold tabular-nums"
+                    >
+                      {c.price}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <p style={{ color: "var(--text-secondary)" }} className="text-[10px] mt-3 text-center opacity-60">
+              Same product. Different markets. Smarter prices.
+            </p>
+          </div>
+        </div>
       </div>
+
+      {/* Divider */}
+      <div className="mb-7" style={{ borderTop: "1px solid var(--border)" }} />
 
       <StepIndicator current={step} />
 
@@ -467,7 +568,7 @@ export default function GlobalPriceCalculator() {
                 const f = e.dataTransfer.files[0];
                 if (f) processFile(f);
               }}
-              className="rounded-2xl p-14 flex flex-col items-center justify-center text-center cursor-pointer transition-all block"
+              className="rounded-2xl p-8 sm:p-14 flex flex-col items-center justify-center text-center cursor-pointer transition-all block"
               style={{
                 border: `2px dashed ${isDragging ? "var(--accent)" : "rgba(124,58,237,0.4)"}`,
                 background: isDragging ? "var(--accent-glow)" : "var(--surface)",
@@ -591,7 +692,7 @@ export default function GlobalPriceCalculator() {
             </div>
           )}
 
-          <div className="flex items-center gap-3 mt-5">
+          <div className="flex flex-wrap items-center gap-3 mt-5">
             <button
               onClick={() => setStep(2)}
               disabled={!step1Valid}
@@ -867,7 +968,7 @@ export default function GlobalPriceCalculator() {
                   aria-label="Search products"
                 />
               </div>
-              <div className="space-y-0.5 max-h-[420px] overflow-y-auto pr-1">
+              <div className="space-y-0.5 max-h-[200px] sm:max-h-[420px] overflow-y-auto pr-1">
                 {filteredProducts.length === 0 && (
                   <p style={{ color: "var(--text-secondary)" }} className="text-xs text-center py-4">
                     No products match
@@ -988,7 +1089,7 @@ export default function GlobalPriceCalculator() {
 
               {/* Country Cards Grid */}
               {selected ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                <div className="grid grid-cols-2 lg:grid-cols-3 gap-2.5">
                   {displayCountries.map((country) => {
                     const isHome = country.iso3 === homeCountry.iso3;
                     const val = calcValue(selected.price, homeCountry, country, fxRates, strategy);

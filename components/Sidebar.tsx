@@ -30,13 +30,17 @@ const NAV = [
 
 const COMING_SOON_COUNT = 1;
 
+const ALL_NAV_ITEMS = NAV.flatMap((g) => g.items);
+
 export default function Sidebar() {
   const pathname = usePathname();
 
   return (
+    <>
+    {/* ── Desktop Sidebar ── */}
     <aside
       style={{ background: "var(--surface)", borderRight: "1px solid var(--border)" }}
-      className="w-52 flex-shrink-0 flex flex-col h-full"
+      className="hidden sm:flex w-52 flex-shrink-0 flex-col h-full"
     >
       {/* Logo */}
       <div
@@ -135,5 +139,29 @@ export default function Sidebar() {
         <p className="mt-0.5 opacity-60">Ecom tools platform</p>
       </div>
     </aside>
+
+    {/* ── Mobile Bottom Nav ── */}
+    <nav
+      className="fixed bottom-0 left-0 right-0 sm:hidden z-50 flex"
+      style={{ background: "var(--surface)", borderTop: "1px solid var(--border)" }}
+    >
+      {ALL_NAV_ITEMS.map((item) => {
+        const active = pathname === item.href;
+        return (
+          <Link
+            key={item.href}
+            href={item.href}
+            className="flex-1 flex flex-col items-center justify-center py-3 gap-1 text-[10px] font-medium transition-colors"
+            style={{ color: active ? "var(--accent-light)" : "var(--text-secondary)" }}
+          >
+            <span style={{ color: active ? "var(--accent-light)" : "var(--text-secondary)" }}>
+              {item.icon}
+            </span>
+            <span>{item.label}</span>
+          </Link>
+        );
+      })}
+    </nav>
+    </>
   );
 }

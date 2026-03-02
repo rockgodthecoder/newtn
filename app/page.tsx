@@ -72,7 +72,7 @@ const LIVE_TOOLS  = CATEGORIES.reduce((n, c) => n + c.tools.filter((t) => (t as 
 
 export default function Home() {
   return (
-    <div className="min-h-full p-6 lg:p-8" style={{ background: "var(--background)" }}>
+    <div className="min-h-full p-4 sm:p-6 lg:p-8" style={{ background: "var(--background)" }}>
       {/* Header */}
       <div className="mb-8">
         <div
@@ -83,7 +83,7 @@ export default function Home() {
         </div>
         <h1
           style={{ color: "var(--text-primary)" }}
-          className="text-3xl font-bold tracking-tight"
+          className="text-2xl sm:text-3xl font-bold tracking-tight"
         >
           Welcome to{" "}
           <span
