@@ -65,6 +65,19 @@ const CATEGORIES = [
       },
     ],
   },
+  {
+    label: "Intelligence",
+    color: "#a78bfa",
+    tools: [
+      {
+        href: "/intelligence/login",
+        title: "Intelligence",
+        description: "AI-powered insights and automation for your ecommerce operations. Invite-only access.",
+        icon: icons.brain,
+        badge: "New",
+      },
+    ],
+  },
 ];
 
 const TOTAL_TOOLS = CATEGORIES.reduce((n, c) => n + c.tools.length, 0);
