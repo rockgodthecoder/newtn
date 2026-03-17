@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { createClient } from "@/utils/supabase/client";
 
 export default function IntelligenceLogin() {
   const [email, setEmail]       = useState("");
@@ -15,10 +16,18 @@ export default function IntelligenceLogin() {
     e.preventDefault();
     setError("");
     setLoading(true);
-    // TODO: replace with real auth
-    await new Promise((r) => setTimeout(r, 900));
-    setLoading(false);
-    setError("Invalid credentials. Intelligence is invite-only.");
+
+    const supabase = createClient();
+    const { error: authError } = await supabase.auth.signInWithPassword({ email, password });
+
+    if (authError) {
+      setError(authError.message);
+      setLoading(false);
+      return;
+    }
+
+    router.push("/intelligence");
+    router.refresh();
   };
 
   return (
@@ -74,11 +83,7 @@ export default function IntelligenceLogin() {
 
             {/* Email */}
             <div className="flex flex-col gap-1.5">
-              <label
-                htmlFor="email"
-                className="text-xs font-medium"
-                style={{ color: "var(--text-secondary)" }}
-              >
+              <label htmlFor="email" className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
                 Email
               </label>
               <input
@@ -104,19 +109,9 @@ export default function IntelligenceLogin() {
             {/* Password */}
             <div className="flex flex-col gap-1.5">
               <div className="flex items-center justify-between">
-                <label
-                  htmlFor="password"
-                  className="text-xs font-medium"
-                  style={{ color: "var(--text-secondary)" }}
-                >
+                <label htmlFor="password" className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
                   Password
                 </label>
-                <span
-                  className="text-[11px] cursor-pointer"
-                  style={{ color: "var(--accent-light)" }}
-                >
-                  Forgot password?
-                </span>
               </div>
               <input
                 id="password"
