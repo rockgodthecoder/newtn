@@ -403,7 +403,7 @@ export default function GlobalPriceCalculator() {
       const pppPrice = selected.price * ratio;
       const finalPrice = pppPrice < 1 ? 0.99 : Math.floor(pppPrice) + 0.99;
       rows.push(
-        `"${flag(c.iso2)} ${c.name}${isHome ? " (Home)" : ""}",${c.currency},${ratio.toFixed(4)},${lazy},${fmt(pppPrice, c.currency)},${fmt(finalPrice, c.currency)}`
+        `"${flag(c.iso2)} ${c.name}${isHome ? " (Home)" : ""}",${c.currency},${ratio.toFixed(4)},"${lazy}","${fmt(pppPrice, c.currency)}","${fmt(finalPrice, c.currency)}"`
       );
     }
     const blob = new Blob([rows.join("\n")], { type: "text/csv" });
