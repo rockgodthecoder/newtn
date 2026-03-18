@@ -170,6 +170,7 @@ function ReviewsSection({ brainId, brandId, reviewCount, onDone, onView }: {
   reviewCount: number; onDone: (count: number) => void; onView: () => void;
 }) {
   const [status, setStatus] = useState<"idle" | "running" | "failed">("idle");
+  const [failReason, setFailReason] = useState("");
   const [trustpilotUrl, setTrustpilotUrl] = useState("");
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -178,24 +179,31 @@ function ReviewsSection({ brainId, brandId, reviewCount, onDone, onView }: {
     if (!url) { alert("Enter a Trustpilot URL first"); return; }
 
     setStatus("running");
+    setFailReason("");
     const res = await fetch("/api/intelligence/brain/reviews/scrape", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ brainId, brandId, trustpilotUrl: url }),
     });
-    if (!res.ok) { setStatus("failed"); return; }
+    if (!res.ok) {
+      const j = await res.json() as { error?: string };
+      setFailReason(j.error ?? `HTTP ${res.status}`);
+      setStatus("failed");
+      return;
+    }
     const { runId, datasetId } = await res.json() as { runId: string; datasetId: string };
 
     // Poll every 4s
     pollRef.current = setInterval(async () => {
       const poll = await fetch(`/api/intelligence/brain/reviews/scrape?runId=${runId}&datasetId=${datasetId}&brainId=${brainId}&brandId=${brandId}`);
-      const result = await poll.json() as { status: string; count?: number };
+      const result = await poll.json() as { status: string; count?: number; reason?: string };
       if (result.status === "done") {
         clearInterval(pollRef.current!);
         setStatus("idle");
         onDone(result.count ?? 0);
       } else if (result.status === "failed") {
         clearInterval(pollRef.current!);
+        setFailReason(result.reason ?? "");
         setStatus("failed");
       }
     }, 4000);
@@ -230,7 +238,7 @@ function ReviewsSection({ brainId, brandId, reviewCount, onDone, onView }: {
           {status === "running" ? <><Spinner /> Scraping…</> : reviewCount > 0 ? "Re-scrape" : "Scrape"}
         </button>
       </div>
-      {status === "failed" && <p className="text-[11px] mt-1.5" style={{ color: "#f87171" }}>Scrape failed. Check the URL and try again.</p>}
+      {status === "failed" && <p className="text-[11px] mt-1.5" style={{ color: "#f87171" }}>Failed{failReason ? `: ${failReason}` : " — check the URL and try again."}</p>}
     </div>
   );
 }

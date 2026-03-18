@@ -71,13 +71,13 @@ export async function GET(request: Request) {
   const runRes = await fetch(apifyUrl(`/actor-runs/${runId}`));
   if (!runRes.ok) return NextResponse.json({ error: "Failed to fetch run status" }, { status: 502 });
 
-  const { data: run } = await runRes.json() as { data: { status: string } };
+  const { data: run } = await runRes.json() as { data: { status: string; statusMessage?: string } };
 
   if (run.status === "RUNNING" || run.status === "READY" || run.status === "TIMING-OUT")
     return NextResponse.json({ status: "running" });
 
   if (run.status === "FAILED" || run.status === "ABORTED" || run.status === "TIMED-OUT")
-    return NextResponse.json({ status: "failed" });
+    return NextResponse.json({ status: "failed", reason: run.statusMessage ?? run.status });
 
   if (run.status !== "SUCCEEDED")
     return NextResponse.json({ status: "running" });
