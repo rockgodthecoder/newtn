@@ -42,26 +42,48 @@ const NAV = [
       {
         href: "/intelligence/customer-journey",
         label: "Customer Journey",
-        requiresAuth: true,
+        greyedOut: true,
         icon: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.106 5.553a2 2 0 0 0 1.788 0l3.659-1.83A1 1 0 0 1 21 4.619v12.764a1 1 0 0 1-.553.894l-4.553 2.277a2 2 0 0 1-1.788 0l-4.212-2.106a2 2 0 0 0-1.788 0l-3.659 1.83A1 1 0 0 1 3 19.381V6.618a1 1 0 0 1 .553-.894l4.553-2.277a2 2 0 0 1 1.788 0Z"/><path d="M15 5.764v15M9 3.236v15"/></svg>,
       },
       {
         href: "/intelligence/review",
         label: "Review Tactics",
-        requiresAuth: true,
+        greyedOut: true,
         icon: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65M22 12.65l-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/></svg>,
       },
       {
         href: "/intelligence/todo",
         label: "To-Do",
-        requiresAuth: true,
+        greyedOut: true,
+        icon: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12h.01M3 18h.01M3 6h.01M8 12h13M8 18h13M8 6h13"/></svg>,
+      },
+    ],
+  },
+  {
+    section: "Ads",
+    color: "#ec4899",
+    items: [
+      {
+        href: "/ads/tinder",
+        label: "Ads Tinder",
+        greyedOut: true,
+        icon: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>,
+      },
+      {
+        href: "/ads/inspiration",
+        label: "Inspiration",
+        greyedOut: true,
+        icon: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9.663 17h4.673M12 3v1m6.364 1.636-.707.707M21 12h-1M4 12H3m3.343-5.657-.707-.707m2.828 9.9a5 5 0 1 1 7.072 0l-.548.547A3.374 3.374 0 0 0 14 18.469V19a2 2 0 1 1-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>,
+      },
+      {
+        href: "/ads/todo",
+        label: "To-Do",
+        greyedOut: true,
         icon: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12h.01M3 18h.01M3 6h.01M8 12h13M8 18h13M8 6h13"/></svg>,
       },
     ],
   },
 ];
-
-const COMING_SOON_COUNT = 1;
 
 const ALL_NAV_ITEMS = NAV.flatMap((g) => g.items);
 
@@ -127,7 +149,8 @@ export default function Sidebar() {
               </div>
             )}
             {group.items.map((item) => {
-              const locked = !!(item as { requiresAuth?: boolean }).requiresAuth && !authed;
+              const locked = !!(item as { greyedOut?: boolean; requiresAuth?: boolean }).greyedOut ||
+                (!!(item as { requiresAuth?: boolean }).requiresAuth && !authed);
               const resolvedHref = authed && (item as { hrefAuthed?: string }).hrefAuthed
                 ? (item as { hrefAuthed?: string }).hrefAuthed!
                 : item.href;
@@ -168,18 +191,7 @@ export default function Sidebar() {
           </div>
         ))}
 
-        {/* Coming soon indicator */}
-        <div
-          className="mt-4 mx-1 rounded-xl px-3 py-2.5"
-          style={{ background: "var(--surface-2)", border: "1px dashed var(--border)" }}
-        >
-          <p style={{ color: "var(--text-secondary)" }} className="text-[10px] font-semibold">
-            {COMING_SOON_COUNT} more tools
-          </p>
-          <p style={{ color: "var(--text-secondary)" }} className="text-[10px] opacity-60 mt-0.5">
-            in development
-          </p>
-        </div>
+
       </nav>
 
       {/* Footer */}
@@ -198,7 +210,8 @@ export default function Sidebar() {
       style={{ background: "var(--surface)", borderTop: "1px solid var(--border)" }}
     >
       {ALL_NAV_ITEMS.map((item) => {
-        const locked = !!(item as { requiresAuth?: boolean }).requiresAuth && !authed;
+        const locked = !!(item as { greyedOut?: boolean; requiresAuth?: boolean }).greyedOut ||
+          (!!(item as { requiresAuth?: boolean }).requiresAuth && !authed);
         const resolvedHref = authed && (item as { hrefAuthed?: string }).hrefAuthed
           ? (item as { hrefAuthed?: string }).hrefAuthed!
           : item.href;
