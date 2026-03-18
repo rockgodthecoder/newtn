@@ -143,7 +143,6 @@ function BrandColumn({
         <ReviewsSection
           brainId={brainId}
           brandId={brand.id}
-          brandUrl={url}
           reviewCount={reviewCount}
           onDone={onReviewsDone}
           onView={onViewReviews}
@@ -155,23 +154,23 @@ function BrandColumn({
 
 // ─── Reviews Section ──────────────────────────────────────────────────────────
 
-function ReviewsSection({ brainId, brandId, brandUrl, reviewCount, onDone, onView }: {
-  brainId: string; brandId: string; brandUrl: string;
+function ReviewsSection({ brainId, brandId, reviewCount, onDone, onView }: {
+  brainId: string; brandId: string;
   reviewCount: number; onDone: (count: number) => void; onView: () => void;
 }) {
   const [status, setStatus] = useState<"idle" | "running" | "failed">("idle");
+  const [trustpilotUrl, setTrustpilotUrl] = useState("");
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const scrape = async () => {
-    const domain = brandUrl ? extractDomain(brandUrl) : null;
-    if (!domain) { alert("Set a brand URL first"); return; }
-    const trustpilotUrl = `https://www.trustpilot.com/review/${domain}`;
+    const url = trustpilotUrl.trim();
+    if (!url) { alert("Enter a Trustpilot URL first"); return; }
 
     setStatus("running");
     const res = await fetch("/api/intelligence/brain/reviews/scrape", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ brainId, brandId, trustpilotUrl }),
+      body: JSON.stringify({ brainId, brandId, trustpilotUrl: url }),
     });
     if (!res.ok) { setStatus("failed"); return; }
     const { runId, datasetId } = await res.json() as { runId: string; datasetId: string };
@@ -200,19 +199,27 @@ function ReviewsSection({ brainId, brandId, brandUrl, reviewCount, onDone, onVie
           <span className="text-sm">⭐</span>
           <span className="text-xs font-semibold" style={{ color: "var(--text-primary)" }}>Reviews</span>
         </div>
-        <div className="flex items-center gap-1.5">
-          {reviewCount > 0 && (
-            <button onClick={onView} className="text-[11px] font-semibold px-2.5 py-1 rounded-lg" style={{ background: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--accent-light)" }}>
-              View {reviewCount}
-            </button>
-          )}
-          <button onClick={scrape} disabled={status === "running"} className="text-[11px] font-semibold px-2.5 py-1 rounded-lg flex items-center gap-1" style={{ background: status === "running" ? "var(--surface-2)" : "var(--accent)", color: status === "running" ? "var(--text-secondary)" : "white" }}>
-            {status === "running" ? <><Spinner /> Scraping…</> : reviewCount > 0 ? "Re-scrape" : "Scrape"}
+        {reviewCount > 0 && (
+          <button onClick={onView} className="text-[11px] font-semibold px-2.5 py-1 rounded-lg" style={{ background: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--accent-light)" }}>
+            View {reviewCount}
           </button>
-        </div>
+        )}
       </div>
-      {status === "failed" && <p className="text-[11px]" style={{ color: "#f87171" }}>Scrape failed. Check the URL and try again.</p>}
-      {status === "idle" && reviewCount === 0 && <p className="text-[11px]" style={{ color: "var(--text-secondary)" }}>Pulls from Trustpilot via Apify</p>}
+      <div className="flex gap-1.5 items-center">
+        <input
+          value={trustpilotUrl}
+          onChange={(e) => setTrustpilotUrl(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && scrape()}
+          placeholder="trustpilot.com/review/…"
+          disabled={status === "running"}
+          className="flex-1 text-[11px] px-2.5 py-1.5 rounded-lg outline-none"
+          style={{ background: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
+        />
+        <button onClick={scrape} disabled={status === "running"} className="text-[11px] font-semibold px-2.5 py-1.5 rounded-lg flex items-center gap-1 flex-shrink-0" style={{ background: status === "running" ? "var(--surface-2)" : "var(--accent)", color: status === "running" ? "var(--text-secondary)" : "white" }}>
+          {status === "running" ? <><Spinner /> Scraping…</> : reviewCount > 0 ? "Re-scrape" : "Scrape"}
+        </button>
+      </div>
+      {status === "failed" && <p className="text-[11px] mt-1.5" style={{ color: "#f87171" }}>Scrape failed. Check the URL and try again.</p>}
     </div>
   );
 }
