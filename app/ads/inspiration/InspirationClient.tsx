@@ -137,12 +137,23 @@ function BrandTab({ ownBrandUrl, savedColors, brainId }: { ownBrandUrl: string |
   const [colors, setColors] = useState<string[]>(savedColors);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [hexInput, setHexInput] = useState("");
+  const [hexError, setHexError] = useState(false);
   const colorInputRef = useRef<HTMLInputElement>(null);
 
   const addColor = (hex: string) => {
     const n = hex.toLowerCase();
     if (!colors.includes(n)) setColors((p) => [...p, n]);
     setSaved(false);
+  };
+
+  const submitHex = () => {
+    const raw = hexInput.trim();
+    const full = raw.startsWith("#") ? raw : `#${raw}`;
+    if (!/^#[0-9a-fA-F]{6}$/.test(full)) { setHexError(true); return; }
+    setHexError(false);
+    addColor(full);
+    setHexInput("");
   };
 
   const removeColor = (hex: string) => { setColors((p) => p.filter((c) => c !== hex)); setSaved(false); };
@@ -211,29 +222,35 @@ function BrandTab({ ownBrandUrl, savedColors, brainId }: { ownBrandUrl: string |
             </div>
           ))}
 
-          {/* Add colour button */}
-          <div className="flex flex-col items-center gap-1">
-            <div
-              className="w-12 h-12 rounded-xl flex items-center justify-center cursor-pointer relative overflow-hidden"
-              style={{ background: "var(--surface-2)", border: "1px dashed var(--border)" }}
-              onClick={() => colorInputRef.current?.click()}
-              title="Add colour"
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="2.5" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
-              <input
-                ref={colorInputRef}
-                type="color"
-                className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-                onChange={(e) => addColor(e.target.value)}
-              />
-            </div>
-            <span className="text-[9px]" style={{ color: "var(--text-secondary)" }}>Add</span>
-          </div>
         </div>
 
-        <p className="text-[11px]" style={{ color: "var(--text-secondary)" }}>
-          Click a swatch to remove it. Click + to pick a colour.
-        </p>
+        {/* Hex input row */}
+        <div className="flex items-center gap-2 mt-2">
+          <div className="flex items-center rounded-lg overflow-hidden flex-1" style={{ background: "var(--surface-2)", border: `1px solid ${hexError ? "#ef4444" : "var(--border)"}` }}>
+            <span className="pl-3 text-sm font-mono" style={{ color: "var(--text-secondary)" }}>#</span>
+            <input
+              value={hexInput}
+              onChange={(e) => { setHexInput(e.target.value.replace(/[^0-9a-fA-F]/g, "").slice(0, 6)); setHexError(false); }}
+              onKeyDown={(e) => e.key === "Enter" && submitHex()}
+              placeholder="e.g. FF5733"
+              maxLength={6}
+              className="flex-1 bg-transparent px-2 py-2.5 text-sm font-mono outline-none"
+              style={{ color: "var(--text-primary)" }}
+            />
+            {hexInput.length === 6 && (
+              <div className="w-6 h-6 rounded mr-2 flex-shrink-0" style={{ background: `#${hexInput}` }} />
+            )}
+          </div>
+          <button onClick={submitHex} className="text-xs font-semibold px-4 py-2.5 rounded-lg flex-shrink-0" style={{ background: "var(--accent)", color: "white" }}>
+            Add
+          </button>
+          {/* Colour picker fallback */}
+          <div className="relative w-9 h-9 rounded-lg overflow-hidden flex-shrink-0 cursor-pointer" style={{ background: "var(--surface-2)", border: "1px solid var(--border)" }} title="Pick colour" onClick={() => colorInputRef.current?.click()}>
+            <svg className="absolute inset-0 m-auto" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/></svg>
+            <input ref={colorInputRef} type="color" className="absolute inset-0 opacity-0 cursor-pointer w-full h-full" onChange={(e) => addColor(e.target.value)} />
+          </div>
+        </div>
+        {hexError && <p className="text-[11px] mt-1.5" style={{ color: "#ef4444" }}>Enter a valid 6-digit hex code</p>}
       </div>
     </div>
   );
