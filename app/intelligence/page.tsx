@@ -45,7 +45,23 @@ export default async function IntelligencePage() {
   }
 
   // Re-fetch brands (use admin to avoid RLS issues after insert)
-  const { data: allBrands } = await db.from("brain_brands").select("id, role, position, name, url").eq("brain_id", brain.id).order("position");
+  const { data: rawBrands } = await db.from("brain_brands").select("id, role, position, name, url").eq("brain_id", brain.id).order("position");
+
+  // Deduplicate: keep the record with the most data per slot, delete stale duplicates
+  const seen = new Map<string, { id: string; role: string; position: number; name: string | null; url: string | null }>();
+  for (const b of (rawBrands ?? [])) {
+    const key = `${b.role}:${b.position}`;
+    const existing = seen.get(key);
+    if (!existing || (b.url && !existing.url) || (b.name && !existing.name)) {
+      seen.set(key, b);
+    }
+  }
+  const allBrands = Array.from(seen.values()).sort((a, b) => a.position - b.position);
+  const keepIds = new Set(allBrands.map((b) => b.id));
+  const staleIds = (rawBrands ?? []).filter((b) => !keepIds.has(b.id)).map((b) => b.id);
+  if (staleIds.length > 0) {
+    await db.from("brain_brands").delete().in("id", staleIds);
+  }
 
   // Fetch uploaded files + review counts
   const [{ data: files }, { data: reviewRows }] = await Promise.all([
@@ -65,7 +81,7 @@ export default async function IntelligencePage() {
       </div>
       <BrainUploadClient
         brainId={brain.id}
-        initialBrands={allBrands ?? []}
+        initialBrands={allBrands}
         initialFiles={files ?? []}
         initialReviewCounts={reviewCounts}
       />
