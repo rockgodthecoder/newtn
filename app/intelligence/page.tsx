@@ -44,8 +44,8 @@ export default async function IntelligencePage() {
     await db.from("brain_brands").insert(toCreate.map((s) => ({ brain_id: brain!.id, ...s })));
   }
 
-  // Re-fetch brands if we created any
-  const { data: allBrands } = await supabase.from("brain_brands").select("id, role, position, name, url").eq("brain_id", brain.id).order("position");
+  // Re-fetch brands (use admin to avoid RLS issues after insert)
+  const { data: allBrands } = await db.from("brain_brands").select("id, role, position, name, url").eq("brain_id", brain.id).order("position");
 
   // Fetch uploaded files
   const { data: files } = await supabase.from("brain_files").select("id, brand_id, type, file_name").eq("brain_id", brain.id);

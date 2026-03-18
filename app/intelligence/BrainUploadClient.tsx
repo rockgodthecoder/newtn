@@ -24,9 +24,17 @@ export default function BrainUploadClient({
   initialBrands: Brand[];
   initialFiles: BrainFile[];
 }) {
-  const ownBrand = initialBrands.find((b) => b.role === "own")!;
-  const comp1 = initialBrands.find((b) => b.role === "competitor" && b.position === 1)!;
-  const comp2 = initialBrands.find((b) => b.role === "competitor" && b.position === 2)!;
+  const ownBrand = initialBrands.find((b) => b.role === "own");
+  const comp1 = initialBrands.find((b) => b.role === "competitor" && b.position === 1);
+  const comp2 = initialBrands.find((b) => b.role === "competitor" && b.position === 2);
+
+  if (!ownBrand || !comp1 || !comp2) {
+    return (
+      <div className="min-h-full flex items-center justify-center" style={{ background: "var(--background)" }}>
+        <p className="text-sm" style={{ color: "var(--text-secondary)" }}>Setting up your brain… refresh in a moment.</p>
+      </div>
+    );
+  }
 
   const [files, setFiles] = useState<BrainFile[]>(initialFiles);
 
