@@ -139,6 +139,7 @@ function BrandTab({ ownBrandUrl, savedColors, brainId }: { ownBrandUrl: string |
   const [saved, setSaved] = useState(false);
   const [hexInput, setHexInput] = useState("");
   const [hexError, setHexError] = useState(false);
+  const [assets, setAssets] = useState<BrandAssets | "loading" | "error" | null>(null);
   const colorInputRef = useRef<HTMLInputElement>(null);
 
   const addColor = (hex: string) => {
@@ -158,16 +159,32 @@ function BrandTab({ ownBrandUrl, savedColors, brainId }: { ownBrandUrl: string |
 
   const removeColor = (hex: string) => { setColors((p) => p.filter((c) => c !== hex)); setSaved(false); };
 
-  const save = async () => {
+  const save = async (colorsToSave = colors) => {
     if (!brainId) return;
     setSaving(true);
     await fetch("/api/ads/brand-identity", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ brainId, colors }),
+      body: JSON.stringify({ brainId, colors: colorsToSave }),
     });
     setSaving(false);
     setSaved(true);
+  };
+
+  const analyse = async () => {
+    if (!ownBrandUrl) return;
+    setAssets("loading");
+    const res = await fetch(`/api/ads/brand-assets?url=${encodeURIComponent(ownBrandUrl)}`);
+    if (!res.ok) { setAssets("error"); return; }
+    const data = await res.json() as BrandAssets;
+    setAssets(data);
+    // Merge scraped colours into existing, deduplicated, then auto-save
+    if (data.colors.length > 0) {
+      const merged = [...new Set([...colors, ...data.colors])];
+      setColors(merged);
+      setSaved(false);
+      await save(merged);
+    }
   };
 
   if (!brainId) {
@@ -180,22 +197,41 @@ function BrandTab({ ownBrandUrl, savedColors, brainId }: { ownBrandUrl: string |
     );
   }
 
+  const domain = ownBrandUrl ? extractDomain(ownBrandUrl) : null;
+
   return (
-    <div className="p-6 max-w-2xl">
-      {ownBrandUrl && (
-        <div className="flex items-center gap-2 mb-6">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={`https://www.google.com/s2/favicons?sz=32&domain=${extractDomain(ownBrandUrl)}`} alt="" width={18} height={18} className="rounded-sm" />
-          <span className="text-sm font-bold" style={{ color: "var(--text-primary)" }}>{extractDomain(ownBrandUrl)}</span>
+    <div className="p-6 max-w-4xl space-y-5">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2.5">
+          {domain && (
+            <>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={`https://www.google.com/s2/favicons?sz=32&domain=${domain}`} alt="" width={18} height={18} className="rounded-sm" />
+              <span className="text-sm font-bold" style={{ color: "var(--text-primary)" }}>{domain}</span>
+            </>
+          )}
         </div>
-      )}
+        <div className="flex items-center gap-2">
+          {assets === "loading"
+            ? <div className="flex items-center gap-1.5 text-xs" style={{ color: "var(--text-secondary)" }}><Spinner />Analysing…</div>
+            : ownBrandUrl && (
+              <button onClick={analyse} className="text-xs font-semibold px-3 py-1.5 rounded-lg" style={{ background: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-primary)" }}>
+                {assets ? "Re-analyse site" : "Auto-detect from site"}
+              </button>
+            )
+          }
+        </div>
+      </div>
+
+      {assets === "error" && <p className="text-xs" style={{ color: "#f87171" }}>Could not reach this website.</p>}
 
       {/* Colours */}
       <div className="rounded-2xl p-5" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
         <div className="flex items-center justify-between mb-4">
           <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "var(--text-secondary)" }}>Brand Colours</p>
           <button
-            onClick={save}
+            onClick={() => save()}
             disabled={saving}
             className="text-xs font-semibold px-3 py-1.5 rounded-lg"
             style={{ background: saved ? "var(--green)" : "var(--accent)", color: "white", opacity: saving ? 0.6 : 1 }}
@@ -207,11 +243,7 @@ function BrandTab({ ownBrandUrl, savedColors, brainId }: { ownBrandUrl: string |
         <div className="flex flex-wrap gap-3 mb-4">
           {colors.map((hex) => (
             <div key={hex} className="flex flex-col items-center gap-1 group relative">
-              <div
-                className="w-12 h-12 rounded-xl cursor-pointer relative"
-                style={{ background: hex, border: "1px solid rgba(255,255,255,0.1)" }}
-                title={hex}
-              >
+              <div className="w-12 h-12 rounded-xl relative" style={{ background: hex, border: "1px solid rgba(255,255,255,0.1)" }} title={hex}>
                 <button
                   onClick={() => removeColor(hex)}
                   className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full items-center justify-center hidden group-hover:flex text-[10px] font-bold"
@@ -221,11 +253,10 @@ function BrandTab({ ownBrandUrl, savedColors, brainId }: { ownBrandUrl: string |
               <span className="text-[9px] font-mono" style={{ color: "var(--text-secondary)" }}>{hex}</span>
             </div>
           ))}
-
         </div>
 
         {/* Hex input row */}
-        <div className="flex items-center gap-2 mt-2">
+        <div className="flex items-center gap-2">
           <div className="flex items-center rounded-lg overflow-hidden flex-1" style={{ background: "var(--surface-2)", border: `1px solid ${hexError ? "#ef4444" : "var(--border)"}` }}>
             <span className="pl-3 text-sm font-mono" style={{ color: "var(--text-secondary)" }}>#</span>
             <input
@@ -237,14 +268,9 @@ function BrandTab({ ownBrandUrl, savedColors, brainId }: { ownBrandUrl: string |
               className="flex-1 bg-transparent px-2 py-2.5 text-sm font-mono outline-none"
               style={{ color: "var(--text-primary)" }}
             />
-            {hexInput.length === 6 && (
-              <div className="w-6 h-6 rounded mr-2 flex-shrink-0" style={{ background: `#${hexInput}` }} />
-            )}
+            {hexInput.length === 6 && <div className="w-6 h-6 rounded mr-2 flex-shrink-0" style={{ background: `#${hexInput}` }} />}
           </div>
-          <button onClick={submitHex} className="text-xs font-semibold px-4 py-2.5 rounded-lg flex-shrink-0" style={{ background: "var(--accent)", color: "white" }}>
-            Add
-          </button>
-          {/* Colour picker fallback */}
+          <button onClick={submitHex} className="text-xs font-semibold px-4 py-2.5 rounded-lg flex-shrink-0" style={{ background: "var(--accent)", color: "white" }}>Add</button>
           <div className="relative w-9 h-9 rounded-lg overflow-hidden flex-shrink-0 cursor-pointer" style={{ background: "var(--surface-2)", border: "1px solid var(--border)" }} title="Pick colour" onClick={() => colorInputRef.current?.click()}>
             <svg className="absolute inset-0 m-auto" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/></svg>
             <input ref={colorInputRef} type="color" className="absolute inset-0 opacity-0 cursor-pointer w-full h-full" onChange={(e) => addColor(e.target.value)} />
@@ -252,6 +278,74 @@ function BrandTab({ ownBrandUrl, savedColors, brainId }: { ownBrandUrl: string |
         </div>
         {hexError && <p className="text-[11px] mt-1.5" style={{ color: "#ef4444" }}>Enter a valid 6-digit hex code</p>}
       </div>
+
+      {/* Scraped assets — only shown after analyse */}
+      {assets && assets !== "loading" && assets !== "error" && (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {/* Logo */}
+          <div className="rounded-2xl p-5" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
+            <p className="text-[10px] font-bold uppercase tracking-widest mb-4" style={{ color: "var(--text-secondary)" }}>Logo</p>
+            {assets.logo ? (
+              <div className="flex items-center justify-center h-24 rounded-xl" style={{ background: "var(--surface-2)" }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={assets.logo} alt="Brand logo" className="max-h-16 max-w-full object-contain" />
+              </div>
+            ) : (
+              <div className="flex items-center justify-center h-24 rounded-xl" style={{ background: "var(--surface-2)" }}>
+                <p className="text-xs" style={{ color: "var(--text-secondary)" }}>Not found</p>
+              </div>
+            )}
+          </div>
+
+          {/* Typography */}
+          <div className="rounded-2xl p-5" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
+            <p className="text-[10px] font-bold uppercase tracking-widest mb-4" style={{ color: "var(--text-secondary)" }}>Typography</p>
+            {assets.fonts.length > 0 ? (
+              <div className="space-y-3">
+                {assets.fonts.map((font) => (
+                  <div key={font}>
+                    <p className="text-sm font-semibold" style={{ color: "var(--text-primary)", fontFamily: `"${font}", sans-serif` }}>{font}</p>
+                    <p className="text-xs" style={{ color: "var(--text-secondary)", fontFamily: `"${font}", sans-serif` }}>Aa Bb Cc 123</p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs" style={{ color: "var(--text-secondary)" }}>No fonts detected.</p>
+            )}
+          </div>
+
+          {/* Languages */}
+          <div className="rounded-2xl p-5" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
+            <p className="text-[10px] font-bold uppercase tracking-widest mb-4" style={{ color: "var(--text-secondary)" }}>Languages</p>
+            {assets.languages.length > 0 ? (
+              <div className="flex flex-wrap gap-1.5">
+                {assets.languages.map((lang) => (
+                  <span key={lang} className="text-[11px] font-semibold px-2.5 py-1 rounded-lg" style={{ background: "var(--surface-2)", color: "var(--text-primary)" }}>
+                    {LANG_NAMES[lang] ?? lang.toUpperCase()}
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs" style={{ color: "var(--text-secondary)" }}>None detected.</p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Images */}
+      {assets && assets !== "loading" && assets !== "error" && assets.images.length > 0 && (
+        <div className="rounded-2xl p-5" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
+          <p className="text-[10px] font-bold uppercase tracking-widest mb-4" style={{ color: "var(--text-secondary)" }}>Images from site</p>
+          <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
+            {assets.images.slice(0, 18).map((url, i) => (
+              <div key={i} className="aspect-square rounded-lg overflow-hidden" style={{ background: "var(--surface-2)" }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={url} alt="" className="w-full h-full object-cover" onError={(e) => { (e.currentTarget.parentElement as HTMLElement).style.display = "none"; }} />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
