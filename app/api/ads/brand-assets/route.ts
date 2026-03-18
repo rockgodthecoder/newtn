@@ -176,45 +176,42 @@ function isBoringColor(hex: string): boolean {
 const BRAND_VAR_HINTS = /--(?:brand|primary|accent|secondary|main|highlight|cta|button|hero|feature|key)/i;
 
 function extractColors(html: string, externalCss: string): string[] {
-  const brandColors = new Map<string, number>(); // from brand CSS vars
-  const allColors = new Map<string, number>();   // everything else
+  const colors = new Map<string, number>(); // hex → score
 
-  const addColor = (hex: string, isBrand = false) => {
+  const add = (hex: string, score: number) => {
     const n = normalizeHex(hex);
-    if (!isBoringColor(n)) {
-      if (isBrand) brandColors.set(n, (brandColors.get(n) ?? 0) + 2);
-      allColors.set(n, (allColors.get(n) ?? 0) + 1);
-    }
+    if (!isBoringColor(n)) colors.set(n, Math.max(colors.get(n) ?? 0, score));
   };
 
-  // theme-color — highest signal
+  // 1. theme-color meta — most intentional signal (score 100)
   const themeColor = extractMeta(html, "theme-color");
-  if (themeColor?.startsWith("#")) addColor(themeColor, true);
+  if (themeColor?.startsWith("#")) add(themeColor, 100);
 
+  // 2. CSS custom properties inside :root {} blocks only — design tokens
+  //    Brand-hinting var names (--primary, --accent, --brand…) score higher
   const allCss = [
     ...[...html.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/gi)].map((x) => x[1]),
     externalCss,
   ].join("\n");
 
-  // CSS custom properties — parse brand-hinting ones with high priority
-  const varRegex = /(--[\w-]+)\s*:\s*(#[0-9a-fA-F]{3,6})\b/g;
+  // Extract :root blocks
+  const rootBlockRegex = /:root\s*\{([^}]+)\}/gi;
   let m;
-  while ((m = varRegex.exec(allCss)) !== null) {
-    addColor(m[2], BRAND_VAR_HINTS.test(m[1]));
+  while ((m = rootBlockRegex.exec(allCss)) !== null) {
+    const block = m[1];
+    const varRegex = /(--[\w-]+)\s*:\s*(#[0-9a-fA-F]{3,6})\b/g;
+    let v;
+    while ((v = varRegex.exec(block)) !== null) {
+      const score = BRAND_VAR_HINTS.test(v[1]) ? 80 : 40;
+      add(v[2], score);
+    }
   }
 
-  // All hex values
-  const hexRegex = /#([0-9a-fA-F]{6}|[0-9a-fA-F]{3})\b/g;
-  while ((m = hexRegex.exec(allCss)) !== null) {
-    addColor(`#${m[1]}`);
-  }
+  // 3. Inline style="" attributes on elements — developer-chosen, intentional
+  const inlineStyleRegex = /style=["'][^"']*?(#[0-9a-fA-F]{6}|#[0-9a-fA-F]{3})\b/gi;
+  while ((m = inlineStyleRegex.exec(html)) !== null) add(m[1], 30);
 
-  // Merge: brand vars first, then by frequency
-  const merged = new Map<string, number>();
-  for (const [hex, score] of brandColors) merged.set(hex, score);
-  for (const [hex, freq] of allColors) merged.set(hex, (merged.get(hex) ?? 0) + freq);
-
-  return Array.from(merged.entries())
+  return Array.from(colors.entries())
     .sort((a, b) => b[1] - a[1])
     .slice(0, 8)
     .map(([hex]) => hex);
