@@ -2,6 +2,7 @@ export const maxDuration = 300;
 
 import { createClient } from "@/utils/supabase/server";
 import { NextResponse } from "next/server";
+import { waitUntil } from "@vercel/functions";
 
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 const MODEL = "anthropic/claude-opus-4-5";
@@ -249,8 +250,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Failed to create journey map" }, { status: 500 });
   }
 
-  // Run build pipeline (async — does not block response)
-  buildJourney(map.id, url, description);
+  // Keep function alive on Vercel after response is sent
+  waitUntil(buildJourney(map.id, url, description));
 
   return NextResponse.json({ id: map.id }, { status: 202 });
 }
