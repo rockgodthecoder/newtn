@@ -417,23 +417,6 @@ function BrandTab({ ownBrandUrl, savedColors, savedFonts, savedAssets, brainId }
             )}
           </div>
 
-          {/* Typography */}
-          <div className="rounded-2xl p-5" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
-            <p className="text-[10px] font-bold uppercase tracking-widest mb-4" style={{ color: "var(--text-secondary)" }}>Typography</p>
-            {assets.fonts.length > 0 ? (
-              <div className="space-y-3">
-                {assets.fonts.map((font) => (
-                  <div key={font}>
-                    <p className="text-sm font-semibold" style={{ color: "var(--text-primary)", fontFamily: `"${font}", sans-serif` }}>{font}</p>
-                    <p className="text-xs" style={{ color: "var(--text-secondary)", fontFamily: `"${font}", sans-serif` }}>Aa Bb Cc 123</p>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-xs" style={{ color: "var(--text-secondary)" }}>No fonts detected.</p>
-            )}
-          </div>
-
           {/* Languages */}
           <div className="rounded-2xl p-5" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
             <p className="text-[10px] font-bold uppercase tracking-widest mb-4" style={{ color: "var(--text-secondary)" }}>Languages</p>
