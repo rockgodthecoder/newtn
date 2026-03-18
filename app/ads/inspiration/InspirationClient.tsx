@@ -23,6 +23,7 @@ export default function InspirationClient({
   hasFacebookToken,
   ownBrandUrl,
   savedColors,
+  savedFonts,
   savedAssets,
   brainId,
 }: {
@@ -32,6 +33,7 @@ export default function InspirationClient({
   hasFacebookToken: boolean;
   ownBrandUrl: string | null;
   savedColors: string[];
+  savedFonts: string[];
   savedAssets: unknown;
   brainId: string | null;
 }) {
@@ -95,7 +97,7 @@ export default function InspirationClient({
       {/* Content */}
       <div className="flex-1 overflow-y-auto">
         {tab === "brand" ? (
-          <BrandTab ownBrandUrl={ownBrandUrl} savedColors={savedColors} savedAssets={savedAssets} brainId={brainId} />
+          <BrandTab ownBrandUrl={ownBrandUrl} savedColors={savedColors} savedFonts={savedFonts} savedAssets={savedAssets} brainId={brainId} />
         ) : tab === "moodboard" ? (
           <div className="p-6">
             {images.length === 0 ? (
@@ -135,10 +137,12 @@ const LANG_NAMES: Record<string, string> = {
   ar: "Arabic", zh: "Chinese", ja: "Japanese", ko: "Korean",
 };
 
-function BrandTab({ ownBrandUrl, savedColors, savedAssets, brainId }: { ownBrandUrl: string | null; savedColors: string[]; savedAssets: unknown; brainId: string | null }) {
+function BrandTab({ ownBrandUrl, savedColors, savedFonts, savedAssets, brainId }: { ownBrandUrl: string | null; savedColors: string[]; savedFonts: string[]; savedAssets: unknown; brainId: string | null }) {
   const [colors, setColors] = useState<string[]>(savedColors);
+  const [fonts, setFonts] = useState<string[]>(savedFonts);
+  const [fontInput, setFontInput] = useState("");
   const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(savedColors.length > 0);
+  const [saved, setSaved] = useState(savedColors.length > 0 || savedFonts.length > 0);
   const [hexInput, setHexInput] = useState("");
   const [hexError, setHexError] = useState(false);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
@@ -176,13 +180,13 @@ function BrandTab({ ownBrandUrl, savedColors, savedAssets, brainId }: { ownBrand
     setEditingIndex(null);
   };
 
-  const save = async (colorsToSave = colors, assetsToSave?: BrandAssets) => {
+  const save = async (colorsToSave = colors, fontsToSave = fonts, assetsToSave?: BrandAssets) => {
     if (!brainId) return;
     setSaving(true);
     await fetch("/api/ads/brand-identity", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ brainId, colors: colorsToSave, ...(assetsToSave ? { assets: assetsToSave } : {}) }),
+      body: JSON.stringify({ brainId, colors: colorsToSave, fonts: fontsToSave, ...(assetsToSave ? { assets: assetsToSave } : {}) }),
     });
     setSaving(false);
     setSaved(true);
@@ -195,9 +199,11 @@ function BrandTab({ ownBrandUrl, savedColors, savedAssets, brainId }: { ownBrand
     if (!res.ok) { setAssets("error"); return; }
     const data = await res.json() as BrandAssets;
     setAssets(data);
-    const merged = [...new Set([...colors, ...data.colors])];
-    setColors(merged);
-    await save(merged, data);
+    const mergedColors = [...new Set([...colors, ...data.colors])];
+    const mergedFonts = [...new Set([...fonts, ...data.fonts])];
+    setColors(mergedColors);
+    setFonts(mergedFonts);
+    await save(mergedColors, mergedFonts, data);
   };
 
   if (!brainId) {
@@ -318,6 +324,67 @@ function BrandTab({ ownBrandUrl, savedColors, savedAssets, brainId }: { ownBrand
           </div>
         </div>
         {hexError && <p className="text-[11px] mt-1.5" style={{ color: "#ef4444" }}>Enter a valid 6-digit hex code</p>}
+      </div>
+
+      {/* Typography */}
+      <div className="rounded-2xl p-5" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
+        <div className="flex items-center justify-between mb-4">
+          <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "var(--text-secondary)" }}>Typography</p>
+          <button
+            onClick={() => save()}
+            disabled={saving}
+            className="text-xs font-semibold px-3 py-1.5 rounded-lg"
+            style={{ background: saved ? "var(--green)" : "var(--accent)", color: "white", opacity: saving ? 0.6 : 1 }}
+          >
+            {saving ? "Saving…" : saved ? "Saved ✓" : "Save"}
+          </button>
+        </div>
+
+        {fonts.length > 0 && (
+          <div className="space-y-2 mb-4">
+            {fonts.map((font, i) => (
+              <div key={i} className="flex items-center justify-between rounded-xl px-4 py-3 group" style={{ background: "var(--surface-2)", border: "1px solid var(--border)" }}>
+                <div>
+                  <p className="text-sm font-semibold" style={{ color: "var(--text-primary)", fontFamily: `"${font}", sans-serif` }}>{font}</p>
+                  <p className="text-xs" style={{ color: "var(--text-secondary)", fontFamily: `"${font}", sans-serif` }}>Aa Bb Cc 123</p>
+                </div>
+                <button
+                  onClick={() => { setFonts((p) => p.filter((_, idx) => idx !== i)); setSaved(false); }}
+                  className="w-6 h-6 rounded-full items-center justify-center hidden group-hover:flex text-[11px] font-bold flex-shrink-0"
+                  style={{ background: "#ef4444", color: "white" }}
+                >×</button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="flex gap-2">
+          <input
+            value={fontInput}
+            onChange={(e) => setFontInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && fontInput.trim()) {
+                const name = fontInput.trim();
+                if (!fonts.includes(name)) { setFonts((p) => [...p, name]); setSaved(false); }
+                setFontInput("");
+              }
+            }}
+            placeholder="Font name, e.g. Playfair Display"
+            className="flex-1 rounded-lg px-3 py-2.5 text-sm outline-none"
+            style={{ background: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
+            onFocus={(e) => (e.currentTarget.style.borderColor = "var(--accent)")}
+            onBlur={(e) => (e.currentTarget.style.borderColor = "var(--border)")}
+          />
+          <button
+            onClick={() => {
+              const name = fontInput.trim();
+              if (name && !fonts.includes(name)) { setFonts((p) => [...p, name]); setSaved(false); }
+              setFontInput("");
+            }}
+            className="text-xs font-semibold px-4 py-2.5 rounded-lg flex-shrink-0"
+            style={{ background: "var(--accent)", color: "white" }}
+          >Add</button>
+        </div>
       </div>
 
       {/* Scraped assets — only shown after analyse */}
