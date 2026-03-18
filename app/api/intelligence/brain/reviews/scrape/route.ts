@@ -40,7 +40,7 @@ export async function POST(request: Request) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       startUrls: [trustpilotUrl],
-      maxReviews: MAX_REVIEWS,
+      maxItems: MAX_REVIEWS,
     }),
   });
 
