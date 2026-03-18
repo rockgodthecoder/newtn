@@ -172,6 +172,7 @@ function ReviewsSection({ brainId, brandId, reviewCount, onDone, onView }: {
   const [status, setStatus] = useState<"idle" | "running" | "failed">("idle");
   const [failReason, setFailReason] = useState("");
   const [trustpilotUrl, setTrustpilotUrl] = useState("");
+  const [showForm, setShowForm] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const scrape = async () => {
@@ -200,6 +201,7 @@ function ReviewsSection({ brainId, brandId, reviewCount, onDone, onView }: {
       if (result.status === "done") {
         clearInterval(pollRef.current!);
         setStatus("idle");
+        setShowForm(false);
         onDone(result.count ?? 0);
       } else if (result.status === "failed") {
         clearInterval(pollRef.current!);
@@ -211,8 +213,8 @@ function ReviewsSection({ brainId, brandId, reviewCount, onDone, onView }: {
 
   useEffect(() => () => { if (pollRef.current) clearInterval(pollRef.current); }, []);
 
-  // Once reviews are saved, just show count + view — no re-scraping
-  if (reviewCount > 0 && status === "idle") {
+  // Once reviews are saved, show count + view + re-scrape toggle
+  if (reviewCount > 0 && status === "idle" && !showForm) {
     return (
       <div className="px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
@@ -220,9 +222,14 @@ function ReviewsSection({ brainId, brandId, reviewCount, onDone, onView }: {
           <span className="text-xs font-semibold" style={{ color: "var(--text-primary)" }}>Reviews</span>
           <span className="text-[11px]" style={{ color: "var(--text-secondary)" }}>{reviewCount} scraped</span>
         </div>
-        <button onClick={onView} className="text-[11px] font-semibold px-2.5 py-1 rounded-lg" style={{ background: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--accent-light)" }}>
-          View
-        </button>
+        <div className="flex items-center gap-1.5">
+          <button onClick={onView} className="text-[11px] font-semibold px-2.5 py-1 rounded-lg" style={{ background: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--accent-light)" }}>
+            View
+          </button>
+          <button onClick={() => setShowForm(true)} className="text-[11px] font-semibold px-2.5 py-1 rounded-lg" style={{ background: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-secondary)" }}>
+            Re-scrape
+          </button>
+        </div>
       </div>
     );
   }
