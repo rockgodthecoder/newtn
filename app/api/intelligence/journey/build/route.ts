@@ -32,13 +32,26 @@ function parseJSON<T>(raw: string): T {
   return JSON.parse(cleaned);
 }
 
+const SCRAPE_HEADERS = {
+  "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+  "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+  "Accept-Language": "en-US,en;q=0.9",
+  "Accept-Encoding": "gzip, deflate, br",
+  "Cache-Control": "no-cache",
+};
+
 async function scrapeWebsite(url: string): Promise<string> {
   const normalize = (u: string) => u.startsWith("http") ? u : `https://${u}`;
-  const baseUrl = normalize(url);
-  const origin = new URL(baseUrl).origin;
+  // Strip tracking params — use clean origin + pathname only
+  const parsed = new URL(normalize(url));
+  const baseUrl = `${parsed.origin}${parsed.pathname === "/" ? "" : parsed.pathname}` || parsed.origin;
+  const origin = parsed.origin;
 
   // Fetch homepage
-  const homepageRes = await fetch(baseUrl, { signal: AbortSignal.timeout(10000) });
+  const homepageRes = await fetch(baseUrl || origin, {
+    headers: SCRAPE_HEADERS,
+    signal: AbortSignal.timeout(15000),
+  });
   const homepageHtml = await homepageRes.text();
 
   // Extract internal links
@@ -61,7 +74,10 @@ async function scrapeWebsite(url: string): Promise<string> {
   // Fetch all pages in parallel
   const pageResults = await Promise.allSettled(
     pagesToFetch.map(async (pageUrl) => {
-      const res = await fetch(pageUrl, { signal: AbortSignal.timeout(10000) });
+      const res = await fetch(pageUrl, {
+        headers: SCRAPE_HEADERS,
+        signal: AbortSignal.timeout(15000),
+      });
       const html = await res.text();
       const text = html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 3000);
       return `\n\n--- Page: ${pageUrl} ---\n${text}`;
