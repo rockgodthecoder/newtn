@@ -14,7 +14,8 @@ export async function GET(request: Request) {
     .from("brand_reviews")
     .select("id, reviewer_name, country_code, published_date, title, body, rating, likes, is_verified")
     .eq("brand_id", brandId)
-    .order("published_date", { ascending: false });
+    .order("published_date", { ascending: false })
+    .limit(1000);
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ reviews: reviews ?? [] });
