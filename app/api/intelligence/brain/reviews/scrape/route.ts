@@ -3,7 +3,7 @@ import { createClient } from "@/utils/supabase/server";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
 
 const ACTOR_ID = "Omb7MeKVdwRZUOhCK";
-const MAX_REVIEWS = 500;
+const MAX_REVIEWS = 1000;
 
 function admin() {
   return createAdminClient(
