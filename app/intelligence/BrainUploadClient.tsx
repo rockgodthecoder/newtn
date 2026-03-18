@@ -104,16 +104,18 @@ function BrandColumn({
 }) {
   const [url, setUrl] = useState(brand.url ?? "");
   const [name, setName] = useState(brand.name ?? "");
-  const [saving, setSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<{ field: string; ok: boolean; msg: string } | null>(null);
 
   const saveField = async (field: "name" | "url", value: string) => {
-    setSaving(true);
-    await fetch(`/api/intelligence/brain/brands/${brand.id}`, {
+    setSaveStatus(null);
+    const res = await fetch(`/api/intelligence/brain/brands/${brand.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ [field]: value }),
     });
-    setSaving(false);
+    const json = await res.json() as { ok?: boolean; error?: string };
+    setSaveStatus({ field, ok: res.ok, msg: res.ok ? "Saved" : (json.error ?? `HTTP ${res.status}`) });
+    setTimeout(() => setSaveStatus(null), 3000);
   };
 
   const domain = url ? extractDomain(url) : null;
@@ -121,19 +123,25 @@ function BrandColumn({
   return (
     <div className="rounded-2xl overflow-hidden flex flex-col" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
       <div className="px-4 py-4" style={{ borderBottom: "1px solid var(--border)" }}>
-        <p className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: "var(--text-secondary)" }}>{label}</p>
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "var(--text-secondary)" }}>{label}</p>
+          <p className="text-[10px] font-mono" style={{ color: "var(--text-secondary)" }}>id:{brand.id.slice(0,8)}</p>
+        </div>
+        {saveStatus && (
+          <p className="text-[10px] mb-1.5 font-semibold" style={{ color: saveStatus.ok ? "var(--green)" : "#f87171" }}>
+            {saveStatus.field}: {saveStatus.msg}
+          </p>
+        )}
         {isOwn ? (
           <div className="flex items-center gap-2">
             <input value={url} onChange={(e) => setUrl(e.target.value)} onBlur={(e) => saveField("url", e.target.value)} onKeyDown={(e) => e.key === "Enter" && (e.currentTarget as HTMLInputElement).blur()} placeholder="yourbrand.com" className="flex-1 bg-transparent text-sm font-semibold outline-none" style={{ color: url ? "var(--text-primary)" : "var(--text-secondary)" }} />
-            {saving && <Spinner />}
           </div>
         ) : (
           <>
             <div className="flex items-center gap-2">
               <input value={name} onChange={(e) => setName(e.target.value)} onBlur={(e) => saveField("name", e.target.value)} onKeyDown={(e) => e.key === "Enter" && (e.currentTarget as HTMLInputElement).blur()} placeholder="Competitor name…" className="flex-1 bg-transparent text-sm font-semibold outline-none" style={{ color: "var(--text-primary)" }} />
-              {saving && <Spinner />}
             </div>
-            <input value={url} onChange={(e) => setUrl(e.target.value)} onBlur={(e) => saveField("url", e.target.value)} onKeyDown={(e) => e.key === "Enter" && (e.currentTarget as HTMLInputElement).blur()} placeholder="competitor.com" className="mt-1.5 w-full bg-transparent text-xs outline-none" style={{ color: url ? "var(--text-secondary)" : "var(--border)" }} />
+            <input value={url} onChange={(e) => setUrl(e.target.value)} onBlur={(e) => saveField("url", e.target.value)} onKeyDown={(e) => e.key === "Enter" && (e.currentTarget as HTMLInputElement).blur()} placeholder="competitor.com" className="mt-1.5 w-full bg-transparent text-xs outline-none" style={{ color: url ? "var(--text-primary)" : "var(--text-secondary)" }} />
           </>
         )}
         {isOwn && domain && <p className="text-xs mt-0.5" style={{ color: "var(--text-secondary)" }}>{domain}</p>}
