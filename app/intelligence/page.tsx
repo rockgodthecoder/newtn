@@ -47,8 +47,16 @@ export default async function IntelligencePage() {
   // Re-fetch brands (use admin to avoid RLS issues after insert)
   const { data: allBrands } = await db.from("brain_brands").select("id, role, position, name, url").eq("brain_id", brain.id).order("position");
 
-  // Fetch uploaded files
-  const { data: files } = await supabase.from("brain_files").select("id, brand_id, type, file_name").eq("brain_id", brain.id);
+  // Fetch uploaded files + review counts
+  const [{ data: files }, { data: reviewRows }] = await Promise.all([
+    db.from("brain_files").select("id, brand_id, type, file_name").eq("brain_id", brain.id),
+    db.from("brand_reviews").select("brand_id").eq("brain_id", brain.id),
+  ]);
+
+  const reviewCounts = (reviewRows ?? []).reduce((acc, r) => {
+    acc[r.brand_id] = (acc[r.brand_id] ?? 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
 
   return (
     <div className="min-h-full relative" style={{ background: "var(--background)" }}>
@@ -59,6 +67,7 @@ export default async function IntelligencePage() {
         brainId={brain.id}
         initialBrands={allBrands ?? []}
         initialFiles={files ?? []}
+        initialReviewCounts={reviewCounts}
       />
     </div>
   );
