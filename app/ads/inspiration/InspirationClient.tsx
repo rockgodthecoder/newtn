@@ -12,6 +12,7 @@ type WebPage = { url: string; title: string; description: string; text: string }
 type IgPost = { id: string; image_url: string; is_video: boolean; caption: string; likes: number; comments: number };
 type IgProfile = { username: string; full_name: string; bio: string; avatar: string; posts: IgPost[] };
 type FbAd = { page_name?: string; ad_creative_bodies?: string[]; ad_creative_link_titles?: string[]; ad_snapshot_url?: string; impressions?: { lower_bound: string } };
+type BrandAssets = { domain: string; logo: string; images: string[]; fonts: string[]; colors: string[]; languages: string[] };
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
@@ -20,13 +21,15 @@ export default function InspirationClient({
   userId,
   competitors,
   hasFacebookToken,
+  ownBrandUrl,
 }: {
   initialImages: MoodImage[];
   userId: string;
   competitors: Competitor[];
   hasFacebookToken: boolean;
+  ownBrandUrl: string | null;
 }) {
-  const [tab, setTab] = useState<"moodboard" | "competitor">("moodboard");
+  const [tab, setTab] = useState<"brand" | "moodboard" | "competitor">("brand");
   const [compTab, setCompTab] = useState<"website" | "socials" | "ads">("website");
   const [images, setImages] = useState(initialImages);
   const [uploading, setUploading] = useState(false);
@@ -64,7 +67,7 @@ export default function InspirationClient({
         <div>
           <h1 className="text-base font-bold mb-3" style={{ color: "var(--text-primary)" }}>Inspiration</h1>
           <TabBar
-            tabs={[{ key: "moodboard", label: "Moodboard" }, { key: "competitor", label: "Competitor" }]}
+            tabs={[{ key: "brand", label: "Brand" }, { key: "moodboard", label: "Moodboard" }, { key: "competitor", label: "Competitor" }]}
             active={tab}
             onChange={(v) => setTab(v as typeof tab)}
           />
@@ -85,7 +88,9 @@ export default function InspirationClient({
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto">
-        {tab === "moodboard" ? (
+        {tab === "brand" ? (
+          <BrandTab ownBrandUrl={ownBrandUrl} />
+        ) : tab === "moodboard" ? (
           <div className="p-6">
             {images.length === 0 ? (
               <EmptyMoodboard onPinterest={() => setShowPinterest(true)} onUpload={() => fileInputRef.current?.click()} />
@@ -110,6 +115,157 @@ export default function InspirationClient({
           onClose={() => setShowPinterest(false)}
           onAdd={(added) => setImages((p) => [...added, ...p])}
         />
+      )}
+    </div>
+  );
+}
+
+// ─── Brand Tab ────────────────────────────────────────────────────────────────
+
+const LANG_NAMES: Record<string, string> = {
+  en: "English", fr: "French", de: "German", es: "Spanish", it: "Italian",
+  nl: "Dutch", pt: "Portuguese", sv: "Swedish", da: "Danish", nb: "Norwegian",
+  fi: "Finnish", pl: "Polish", cs: "Czech", ro: "Romanian", hu: "Hungarian",
+  ar: "Arabic", zh: "Chinese", ja: "Japanese", ko: "Korean",
+};
+
+function BrandTab({ ownBrandUrl }: { ownBrandUrl: string | null }) {
+  const [assets, setAssets] = useState<BrandAssets | "loading" | "error" | null>(null);
+
+  const analyse = async () => {
+    if (!ownBrandUrl) return;
+    setAssets("loading");
+    const res = await fetch(`/api/ads/brand-assets?url=${encodeURIComponent(ownBrandUrl)}`);
+    if (!res.ok) { setAssets("error"); return; }
+    setAssets(await res.json() as BrandAssets);
+  };
+
+  if (!ownBrandUrl) {
+    return (
+      <div className="flex flex-col items-center justify-center py-24 text-center max-w-sm mx-auto">
+        <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-5" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+        </div>
+        <p className="text-sm font-semibold mb-1" style={{ color: "var(--text-primary)" }}>No brand set up yet</p>
+        <p className="text-xs mb-5" style={{ color: "var(--text-secondary)" }}>Add your brand URL in the Brain to unlock visual analysis.</p>
+        <a href="/intelligence" className="text-xs font-semibold px-4 py-2 rounded-lg" style={{ background: "var(--accent)", color: "white" }}>Go to Brain</a>
+      </div>
+    );
+  }
+
+  const domain = extractDomain(ownBrandUrl);
+
+  return (
+    <div className="p-6 max-w-4xl">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-2.5">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={`https://www.google.com/s2/favicons?sz=32&domain=${domain}`} alt="" width={20} height={20} className="rounded-sm" />
+          <span className="text-sm font-bold" style={{ color: "var(--text-primary)" }}>{domain}</span>
+        </div>
+        {assets !== "loading" && (
+          <button onClick={analyse} className="text-xs font-semibold px-4 py-2 rounded-lg" style={{ background: "var(--accent)", color: "white" }}>
+            {assets ? "Re-analyse" : "Analyse Brand"}
+          </button>
+        )}
+        {assets === "loading" && <div className="flex items-center gap-1.5 text-xs" style={{ color: "var(--text-secondary)" }}><Spinner />Analysing…</div>}
+      </div>
+
+      {!assets && (
+        <div className="rounded-2xl p-8 flex flex-col items-center text-center" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
+          <p className="text-sm font-semibold mb-1" style={{ color: "var(--text-primary)" }}>Extract brand assets</p>
+          <p className="text-xs" style={{ color: "var(--text-secondary)" }}>Pull logo, colours, typography, images and language info directly from your website.</p>
+        </div>
+      )}
+
+      {assets === "error" && (
+        <p className="text-sm" style={{ color: "#f87171" }}>Could not reach this website. Check the URL in your Brain.</p>
+      )}
+
+      {assets && assets !== "loading" && assets !== "error" && (
+        <div className="space-y-6">
+          {/* Logo + Colours + Typography row */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {/* Logo */}
+            <div className="rounded-2xl p-5" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
+              <p className="text-[10px] font-bold uppercase tracking-widest mb-4" style={{ color: "var(--text-secondary)" }}>Logo</p>
+              {assets.logo ? (
+                <div className="flex items-center justify-center h-24 rounded-xl" style={{ background: "var(--surface-2)" }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={assets.logo} alt="Brand logo" className="max-h-16 max-w-full object-contain" />
+                </div>
+              ) : (
+                <div className="flex items-center justify-center h-24 rounded-xl" style={{ background: "var(--surface-2)" }}>
+                  <p className="text-xs" style={{ color: "var(--text-secondary)" }}>Not found</p>
+                </div>
+              )}
+            </div>
+
+            {/* Colours */}
+            <div className="rounded-2xl p-5" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
+              <p className="text-[10px] font-bold uppercase tracking-widest mb-4" style={{ color: "var(--text-secondary)" }}>Colours</p>
+              {assets.colors.length > 0 ? (
+                <div className="flex flex-wrap gap-2">
+                  {assets.colors.map((hex) => (
+                    <div key={hex} className="flex flex-col items-center gap-1">
+                      <div className="w-9 h-9 rounded-xl shadow-sm" style={{ background: hex, border: "1px solid rgba(255,255,255,0.08)" }} title={hex} />
+                      <span className="text-[9px] font-mono" style={{ color: "var(--text-secondary)" }}>{hex}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs" style={{ color: "var(--text-secondary)" }}>No brand colours detected in inline styles.</p>
+              )}
+            </div>
+
+            {/* Typography + Language */}
+            <div className="rounded-2xl p-5 space-y-5" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-widest mb-3" style={{ color: "var(--text-secondary)" }}>Typography</p>
+                {assets.fonts.length > 0 ? (
+                  <div className="space-y-2">
+                    {assets.fonts.map((font) => (
+                      <div key={font}>
+                        <p className="text-sm font-semibold" style={{ color: "var(--text-primary)", fontFamily: `"${font}", sans-serif` }}>{font}</p>
+                        <p className="text-xs" style={{ color: "var(--text-secondary)", fontFamily: `"${font}", sans-serif` }}>Aa Bb Cc 123</p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs" style={{ color: "var(--text-secondary)" }}>No Google Fonts detected.</p>
+                )}
+              </div>
+              {assets.languages.length > 0 && (
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-widest mb-3" style={{ color: "var(--text-secondary)" }}>Languages</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {assets.languages.map((lang) => (
+                      <span key={lang} className="text-[11px] font-semibold px-2 py-1 rounded-lg" style={{ background: "var(--surface-2)", color: "var(--text-primary)" }}>
+                        {LANG_NAMES[lang] ?? lang.toUpperCase()}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Images */}
+          {assets.images.length > 0 && (
+            <div className="rounded-2xl p-5" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
+              <p className="text-[10px] font-bold uppercase tracking-widest mb-4" style={{ color: "var(--text-secondary)" }}>Images from site</p>
+              <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
+                {assets.images.slice(0, 18).map((url, i) => (
+                  <div key={i} className="aspect-square rounded-lg overflow-hidden" style={{ background: "var(--surface-2)" }}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={url} alt="" className="w-full h-full object-cover" onError={(e) => { (e.currentTarget as HTMLImageElement).parentElement!.style.display = "none"; }} />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
       )}
     </div>
   );

@@ -13,13 +13,14 @@ export default async function InspirationPage() {
   ]);
 
   let competitors: Array<{ id: string; url: string }> = [];
+  let ownBrandUrl: string | null = null;
   if (brain) {
-    const { data: brands } = await supabase
-      .from("brain_brands")
-      .select("id, url")
-      .eq("brain_id", brain.id)
-      .eq("role", "competitor");
+    const [{ data: brands }, { data: ownBrand }] = await Promise.all([
+      supabase.from("brain_brands").select("id, url").eq("brain_id", brain.id).eq("role", "competitor"),
+      supabase.from("brain_brands").select("url").eq("brain_id", brain.id).eq("role", "own").single(),
+    ]);
     competitors = brands ?? [];
+    ownBrandUrl = ownBrand?.url ?? null;
   }
 
   return (
@@ -28,6 +29,7 @@ export default async function InspirationPage() {
       userId={user.id}
       competitors={competitors}
       hasFacebookToken={!!process.env.FACEBOOK_ACCESS_TOKEN}
+      ownBrandUrl={ownBrandUrl}
     />
   );
 }
