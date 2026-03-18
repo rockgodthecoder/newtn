@@ -76,6 +76,13 @@ const CATEGORIES = [
         icon: icons.brain,
         badge: "New",
       },
+      {
+        href: "/intelligence/customer-journey",
+        title: "Customer Journey Mapper",
+        description: "AI-generated visual map of your full customer journey from first contact to sale. 20+ stages.",
+        icon: icons.map,
+        badge: "New",
+      },
     ],
   },
 ];
