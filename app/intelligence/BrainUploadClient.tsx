@@ -211,18 +211,27 @@ function ReviewsSection({ brainId, brandId, reviewCount, onDone, onView }: {
 
   useEffect(() => () => { if (pollRef.current) clearInterval(pollRef.current); }, []);
 
-  return (
-    <div className="px-4 py-3">
-      <div className="flex items-center justify-between mb-2">
+  // Once reviews are saved, just show count + view — no re-scraping
+  if (reviewCount > 0 && status === "idle") {
+    return (
+      <div className="px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span className="text-sm">⭐</span>
           <span className="text-xs font-semibold" style={{ color: "var(--text-primary)" }}>Reviews</span>
+          <span className="text-[11px]" style={{ color: "var(--text-secondary)" }}>{reviewCount} scraped</span>
         </div>
-        {reviewCount > 0 && (
-          <button onClick={onView} className="text-[11px] font-semibold px-2.5 py-1 rounded-lg" style={{ background: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--accent-light)" }}>
-            View {reviewCount}
-          </button>
-        )}
+        <button onClick={onView} className="text-[11px] font-semibold px-2.5 py-1 rounded-lg" style={{ background: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--accent-light)" }}>
+          View
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="px-4 py-3">
+      <div className="flex items-center gap-2 mb-2">
+        <span className="text-sm">⭐</span>
+        <span className="text-xs font-semibold" style={{ color: "var(--text-primary)" }}>Reviews</span>
       </div>
       <div className="flex gap-1.5 items-center">
         <input
@@ -235,7 +244,7 @@ function ReviewsSection({ brainId, brandId, reviewCount, onDone, onView }: {
           style={{ background: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
         />
         <button onClick={scrape} disabled={status === "running"} className="text-[11px] font-semibold px-2.5 py-1.5 rounded-lg flex items-center gap-1 flex-shrink-0" style={{ background: status === "running" ? "var(--surface-2)" : "var(--accent)", color: status === "running" ? "var(--text-secondary)" : "white" }}>
-          {status === "running" ? <><Spinner /> Scraping…</> : reviewCount > 0 ? "Re-scrape" : "Scrape"}
+          {status === "running" ? <><Spinner /> Scraping…</> : "Scrape"}
         </button>
       </div>
       {status === "failed" && <p className="text-[11px] mt-1.5" style={{ color: "#f87171" }}>Failed{failReason ? `: ${failReason}` : " — check the URL and try again."}</p>}
