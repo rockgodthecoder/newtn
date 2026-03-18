@@ -128,12 +128,15 @@ function BrandColumn({
             {saving && <Spinner />}
           </div>
         ) : (
-          <div className="flex items-center gap-2">
-            <input value={name} onChange={(e) => setName(e.target.value)} onBlur={(e) => saveField("name", e.target.value)} onKeyDown={(e) => e.key === "Enter" && (e.currentTarget as HTMLInputElement).blur()} placeholder="Competitor name…" className="flex-1 bg-transparent text-sm font-semibold outline-none" style={{ color: "var(--text-primary)" }} />
-            {saving && <Spinner />}
-          </div>
+          <>
+            <div className="flex items-center gap-2">
+              <input value={name} onChange={(e) => setName(e.target.value)} onBlur={(e) => saveField("name", e.target.value)} onKeyDown={(e) => e.key === "Enter" && (e.currentTarget as HTMLInputElement).blur()} placeholder="Competitor name…" className="flex-1 bg-transparent text-sm font-semibold outline-none" style={{ color: "var(--text-primary)" }} />
+              {saving && <Spinner />}
+            </div>
+            <input value={url} onChange={(e) => setUrl(e.target.value)} onBlur={(e) => saveField("url", e.target.value)} onKeyDown={(e) => e.key === "Enter" && (e.currentTarget as HTMLInputElement).blur()} placeholder="competitor.com" className="mt-1.5 w-full bg-transparent text-xs outline-none" style={{ color: url ? "var(--text-secondary)" : "var(--border)" }} />
+          </>
         )}
-        {domain && <p className="text-xs mt-0.5" style={{ color: "var(--text-secondary)" }}>{domain}</p>}
+        {isOwn && domain && <p className="text-xs mt-0.5" style={{ color: "var(--text-secondary)" }}>{domain}</p>}
       </div>
 
       <div className="flex-1 divide-y" style={{ borderColor: "var(--border)" }}>
