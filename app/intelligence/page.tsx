@@ -41,7 +41,7 @@ export default async function IntelligencePage() {
   );
 
   if (toCreate.length > 0) {
-    await db.from("brain_brands").insert(toCreate.map((s) => ({ brain_id: brain!.id, ...s })));
+    await db.from("brain_brands").insert(toCreate.map((s) => ({ brain_id: brain!.id, url: "", ...s })));
   }
 
   // Re-fetch brands (use admin to avoid RLS issues after insert)
