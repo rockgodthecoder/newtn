@@ -26,8 +26,8 @@ export default async function IntelligencePage() {
   }
   if (!brain) redirect("/intelligence/login");
 
-  // Ensure 3 brand slots (own + 2 competitors)
-  const { data: existingBrands } = await supabase.from("brain_brands").select("id, role, position, name, url").eq("brain_id", brain.id).order("position");
+  // Ensure 3 brand slots (own + 2 competitors) — use admin to bypass RLS
+  const { data: existingBrands } = await db.from("brain_brands").select("id, role, position, name, url").eq("brain_id", brain.id).order("position");
   const brands = existingBrands ?? [];
 
   const slots: { role: string; position: number }[] = [
