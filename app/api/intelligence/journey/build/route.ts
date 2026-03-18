@@ -204,15 +204,132 @@ Be specific to this brand. Return a JSON array of the detailed stages. Return ON
     }
 
     // Step 5: Save nodes
-    await updateProgress(supabase, mapId, 97, "Saving your journey map…");
+    await updateProgress(supabase, mapId, 90, "Saving journey stages…");
     const nodeInserts = allNodes.map((n) => ({
       journey_map_id: mapId,
       title: n.title,
       position: n.position,
       explanation: n.explanation,
       tactics: n.tactics,
+      category: n.category ?? "other",
     }));
-    await supabase.from("journey_nodes").insert(nodeInserts);
+    const { data: savedNodes } = await supabase.from("journey_nodes").insert(nodeInserts).select();
+
+    // Step 6: Generate CEPs
+    await updateProgress(supabase, mapId, 92, "Identifying category entry points…");
+    const cepPrompt = `You are an expert brand strategist. Based on the following brand data, identify the Category Entry Points (CEPs) for this brand.
+
+CEPs are the specific situations, occasions, needs, or mental triggers that cause a customer to think about and enter this product category. They are NOT marketing channels — they are the real-world moments that trigger a purchase consideration.
+
+Brand Profile:
+${JSON.stringify(businessProfile, null, 2)}
+
+Brand URL: ${url}
+Brand Description: ${description}
+
+Generate 8-12 CEPs specific to this brand's category and audience.
+
+For each CEP, also identify which journey stage node titles are most relevant to addressing it (list 2-4 node titles from the list below).
+
+Journey node titles (for reference):
+${allNodes.map((s) => s.title).join(", ")}
+
+Return a JSON array:
+[
+  {
+    "title": "CEP name (2-4 words)",
+    "description": "1-2 sentences: the specific situation or trigger",
+    "connected_node_titles": ["node title 1", "node title 2"]
+  }
+]
+
+Return ONLY valid JSON.`;
+
+    const cepRaw = await callAI(cepPrompt, 0.4);
+    const cepOutlines = parseJSON<Array<{ title: string; description: string; connected_node_titles: string[] }>>(cepRaw);
+
+    // Resolve node titles to IDs
+    const nodesByTitle: Record<string, string> = {};
+    for (const node of savedNodes ?? []) {
+      nodesByTitle[node.title] = node.id;
+    }
+    const cepInserts = cepOutlines.map((c, i) => ({
+      journey_map_id: mapId,
+      title: c.title,
+      description: c.description,
+      connected_node_ids: c.connected_node_titles
+        .map((t) => nodesByTitle[t])
+        .filter(Boolean),
+      position: i,
+    }));
+    await supabase.from("journey_ceps").insert(cepInserts);
+
+    // Step 7: Generate Decision Mechanisms
+    await updateProgress(supabase, mapId, 95, "Generating decision mechanisms…");
+    const decisionPrompt = `You are an expert ecommerce conversion strategist. Based on this brand, identify the key decision-making questions and trust barriers customers face before purchasing.
+
+These are the specific questions, doubts, or objections a customer has about this particular brand or product category — things they need answered before they feel confident buying.
+
+Brand Profile:
+${JSON.stringify(businessProfile, null, 2)}
+
+Brand URL: ${url}
+
+Generate 6-10 decision mechanisms. Be specific to this brand's category, product type, and customer concerns.
+
+Examples of decision mechanisms:
+- "Is this greenwashing?" (for eco brands)
+- "How does it fit compared to my usual size?" (for footwear)
+- "Will it last as long as a non-sustainable alternative?"
+
+Return a JSON array:
+[
+  {
+    "question": "The customer's exact question or doubt",
+    "answer_approach": "Specific, actionable way the brand should answer this on their website or in their marketing"
+  }
+]
+
+Return ONLY valid JSON.`;
+
+    const decisionRaw = await callAI(decisionPrompt, 0.4);
+    const decisionOutlines = parseJSON<Array<{ question: string; answer_approach: string }>>(decisionRaw);
+    const decisionInserts = decisionOutlines.map((d, i) => ({
+      journey_map_id: mapId,
+      question: d.question,
+      answer_approach: d.answer_approach,
+      position: i,
+    }));
+    await supabase.from("journey_decisions").insert(decisionInserts);
+
+    // Step 8: Extract tactics into journey_tactics table
+    await updateProgress(supabase, mapId, 98, "Extracting tactics…");
+    const tacticInserts: Array<{
+      journey_map_id: string;
+      journey_node_id: string;
+      text: string;
+      channel: string;
+      swipe_status: string;
+      completed: boolean;
+      position: number;
+    }> = [];
+    for (const node of savedNodes ?? []) {
+      const tactics = Array.isArray(node.tactics) ? node.tactics : [];
+      tactics.forEach((text: string, i: number) => {
+        tacticInserts.push({
+          journey_map_id: mapId,
+          journey_node_id: node.id,
+          text,
+          channel: node.category ?? "other",
+          swipe_status: "unreviewed",
+          completed: false,
+          position: i,
+        });
+      });
+    }
+    if (tacticInserts.length > 0) {
+      await supabase.from("journey_tactics").insert(tacticInserts);
+    }
 
     await supabase
       .from("journey_maps")

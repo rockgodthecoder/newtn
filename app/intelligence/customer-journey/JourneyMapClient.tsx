@@ -17,6 +17,7 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import NodeDetailPanel from "./NodeDetailPanel";
+import CEPView from "./CEPView";
 
 type JourneyNode = {
   id: string;
@@ -153,11 +154,16 @@ function buildFlowNodes(
 export default function JourneyMapClient({
   map,
   initialNodes,
+  initialCeps = [],
+  initialDecisions = [],
 }: {
   map: JourneyMap;
   initialNodes: JourneyNode[];
+  initialCeps?: unknown[];
+  initialDecisions?: unknown[];
 }) {
   const router = useRouter();
+  const [view, setView] = useState<"journey" | "cep">("journey");
   const [journeyNodes, setJourneyNodes] = useState<JourneyNode[]>(initialNodes);
   const [selectedNode, setSelectedNode] = useState<JourneyNode | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -229,6 +235,26 @@ export default function JourneyMapClient({
           </p>
         </div>
         <div className="flex items-center gap-2">
+          {/* View toggle */}
+          <div
+            className="flex rounded-lg overflow-hidden"
+            style={{ border: "1px solid var(--border)", background: "var(--surface-2)" }}
+          >
+            {(["journey", "cep"] as const).map((v) => (
+              <button
+                key={v}
+                onClick={() => setView(v)}
+                className="text-xs font-semibold px-3 py-1.5 transition-all"
+                style={{
+                  background: view === v ? "var(--accent)" : "transparent",
+                  color: view === v ? "white" : "var(--text-secondary)",
+                }}
+              >
+                {v === "journey" ? "Journey Map" : "CEP View"}
+              </button>
+            ))}
+          </div>
+
           <button
             onClick={() => setShowAddModal(true)}
             className="text-xs font-semibold px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all"
@@ -247,8 +273,17 @@ export default function JourneyMapClient({
         </div>
       </div>
 
+      {/* CEP View */}
+      {view === "cep" && (
+        <CEPView
+          ceps={initialCeps as Parameters<typeof CEPView>[0]["ceps"]}
+          decisions={initialDecisions as Parameters<typeof CEPView>[0]["decisions"]}
+          nodes={journeyNodes}
+        />
+      )}
+
       {/* Canvas */}
-      <div className="flex-1 relative">
+      {view === "journey" && <div className="flex-1 relative">
         <ReactFlow
           nodes={nodes}
           edges={edges}
@@ -267,7 +302,7 @@ export default function JourneyMapClient({
             nodeColor={(n) => CATEGORY_COLORS[(n.data as { category: string }).category] ?? "#7c3aed"}
           />
         </ReactFlow>
-      </div>
+      </div>}
 
       {/* Node detail panel */}
       {selectedNode && (
