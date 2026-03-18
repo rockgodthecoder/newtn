@@ -139,6 +139,8 @@ function BrandTab({ ownBrandUrl, savedColors, brainId }: { ownBrandUrl: string |
   const [saved, setSaved] = useState(false);
   const [hexInput, setHexInput] = useState("");
   const [hexError, setHexError] = useState(false);
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [editValue, setEditValue] = useState("");
   const [assets, setAssets] = useState<BrandAssets | "loading" | "error" | null>(null);
   const colorInputRef = useRef<HTMLInputElement>(null);
 
@@ -158,6 +160,17 @@ function BrandTab({ ownBrandUrl, savedColors, brainId }: { ownBrandUrl: string |
   };
 
   const removeColor = (hex: string) => { setColors((p) => p.filter((c) => c !== hex)); setSaved(false); };
+
+  const startEdit = (i: number) => { setEditingIndex(i); setEditValue(colors[i].replace("#", "")); };
+
+  const commitEdit = (i: number) => {
+    const full = `#${editValue}`;
+    if (/^#[0-9a-fA-F]{6}$/.test(full)) {
+      setColors((p) => p.map((c, idx) => idx === i ? full.toLowerCase() : c));
+      setSaved(false);
+    }
+    setEditingIndex(null);
+  };
 
   const save = async (colorsToSave = colors) => {
     if (!brainId) return;
@@ -241,16 +254,44 @@ function BrandTab({ ownBrandUrl, savedColors, brainId }: { ownBrandUrl: string |
         </div>
 
         <div className="flex flex-wrap gap-3 mb-4">
-          {colors.map((hex) => (
-            <div key={hex} className="flex flex-col items-center gap-1 group relative">
-              <div className="w-12 h-12 rounded-xl relative" style={{ background: hex, border: "1px solid rgba(255,255,255,0.1)" }} title={hex}>
-                <button
-                  onClick={() => removeColor(hex)}
-                  className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full items-center justify-center hidden group-hover:flex text-[10px] font-bold"
-                  style={{ background: "#ef4444", color: "white" }}
-                >×</button>
-              </div>
-              <span className="text-[9px] font-mono" style={{ color: "var(--text-secondary)" }}>{hex}</span>
+          {colors.map((hex, i) => (
+            <div key={i} className="flex flex-col items-center gap-1 group relative">
+              {editingIndex === i ? (
+                <div className="rounded-xl overflow-hidden" style={{ border: "1px solid var(--accent)", background: "var(--surface-2)" }}>
+                  <div className="w-12 h-8 rounded-t-xl" style={{ background: /^#[0-9a-fA-F]{6}$/.test(`#${editValue}`) ? `#${editValue}` : hex }} />
+                  <div className="flex items-center px-1 py-1 gap-0.5">
+                    <span className="text-[10px] font-mono" style={{ color: "var(--text-secondary)" }}>#</span>
+                    <input
+                      autoFocus
+                      value={editValue}
+                      onChange={(e) => setEditValue(e.target.value.replace(/[^0-9a-fA-F]/g, "").slice(0, 6))}
+                      onKeyDown={(e) => { if (e.key === "Enter") commitEdit(i); if (e.key === "Escape") setEditingIndex(null); }}
+                      onBlur={() => commitEdit(i)}
+                      className="w-10 bg-transparent text-[10px] font-mono outline-none"
+                      style={{ color: "var(--text-primary)" }}
+                      maxLength={6}
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="w-12 h-12 rounded-xl relative" style={{ background: hex, border: "1px solid rgba(255,255,255,0.1)" }}>
+                  {/* Edit button */}
+                  <button
+                    onClick={() => startEdit(i)}
+                    className="absolute inset-0 w-full h-full rounded-xl items-center justify-center hidden group-hover:flex"
+                    style={{ background: "rgba(0,0,0,0.45)" }}
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                  </button>
+                  {/* Remove button */}
+                  <button
+                    onClick={() => removeColor(hex)}
+                    className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full items-center justify-center hidden group-hover:flex text-[10px] font-bold"
+                    style={{ background: "#ef4444", color: "white" }}
+                  >×</button>
+                </div>
+              )}
+              {editingIndex !== i && <span className="text-[9px] font-mono" style={{ color: "var(--text-secondary)" }}>{hex}</span>}
             </div>
           ))}
         </div>
