@@ -23,6 +23,7 @@ export default function InspirationClient({
   hasFacebookToken,
   ownBrandUrl,
   savedColors,
+  savedAssets,
   brainId,
 }: {
   initialImages: MoodImage[];
@@ -31,6 +32,7 @@ export default function InspirationClient({
   hasFacebookToken: boolean;
   ownBrandUrl: string | null;
   savedColors: string[];
+  savedAssets: unknown;
   brainId: string | null;
 }) {
   const [tab, setTab] = useState<"brand" | "moodboard" | "competitor">("brand");
@@ -93,7 +95,7 @@ export default function InspirationClient({
       {/* Content */}
       <div className="flex-1 overflow-y-auto">
         {tab === "brand" ? (
-          <BrandTab ownBrandUrl={ownBrandUrl} savedColors={savedColors} brainId={brainId} />
+          <BrandTab ownBrandUrl={ownBrandUrl} savedColors={savedColors} savedAssets={savedAssets} brainId={brainId} />
         ) : tab === "moodboard" ? (
           <div className="p-6">
             {images.length === 0 ? (
@@ -133,15 +135,17 @@ const LANG_NAMES: Record<string, string> = {
   ar: "Arabic", zh: "Chinese", ja: "Japanese", ko: "Korean",
 };
 
-function BrandTab({ ownBrandUrl, savedColors, brainId }: { ownBrandUrl: string | null; savedColors: string[]; brainId: string | null }) {
+function BrandTab({ ownBrandUrl, savedColors, savedAssets, brainId }: { ownBrandUrl: string | null; savedColors: string[]; savedAssets: unknown; brainId: string | null }) {
   const [colors, setColors] = useState<string[]>(savedColors);
   const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const [saved, setSaved] = useState(savedColors.length > 0);
   const [hexInput, setHexInput] = useState("");
   const [hexError, setHexError] = useState(false);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editValue, setEditValue] = useState("");
-  const [assets, setAssets] = useState<BrandAssets | "loading" | "error" | null>(null);
+  const [assets, setAssets] = useState<BrandAssets | "loading" | "error" | null>(
+    savedAssets ? (savedAssets as BrandAssets) : null
+  );
   const colorInputRef = useRef<HTMLInputElement>(null);
 
   const addColor = (hex: string) => {
@@ -172,13 +176,13 @@ function BrandTab({ ownBrandUrl, savedColors, brainId }: { ownBrandUrl: string |
     setEditingIndex(null);
   };
 
-  const save = async (colorsToSave = colors) => {
+  const save = async (colorsToSave = colors, assetsToSave?: BrandAssets) => {
     if (!brainId) return;
     setSaving(true);
     await fetch("/api/ads/brand-identity", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ brainId, colors: colorsToSave }),
+      body: JSON.stringify({ brainId, colors: colorsToSave, ...(assetsToSave ? { assets: assetsToSave } : {}) }),
     });
     setSaving(false);
     setSaved(true);
@@ -193,7 +197,7 @@ function BrandTab({ ownBrandUrl, savedColors, brainId }: { ownBrandUrl: string |
     setAssets(data);
     const merged = [...new Set([...colors, ...data.colors])];
     setColors(merged);
-    await save(merged);
+    await save(merged, data);
   };
 
   if (!brainId) {

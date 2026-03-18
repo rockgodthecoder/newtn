@@ -6,12 +6,15 @@ export async function PATCH(request: Request) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { brainId, colors } = await request.json() as { brainId: string; colors: string[] };
+  const { brainId, colors, assets } = await request.json() as { brainId: string; colors: string[]; assets?: unknown };
   if (!brainId) return NextResponse.json({ error: "brainId required" }, { status: 400 });
+
+  const update: Record<string, unknown> = { identity_colors: colors };
+  if (assets !== undefined) update.brand_assets = assets;
 
   const { error } = await supabase
     .from("brand_brains")
-    .update({ identity_colors: colors })
+    .update(update)
     .eq("id", brainId)
     .eq("user_id", user.id);
 
