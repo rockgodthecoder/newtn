@@ -38,8 +38,12 @@ export default function BrainInputForm() {
     });
 
     if (!res.ok) {
-      const data = await res.json();
-      setError(data.error ?? "Something went wrong");
+      try {
+        const data = await res.json();
+        setError(data.error ?? "Something went wrong");
+      } catch {
+        setError("Something went wrong — please try again");
+      }
       setLoading(false);
       return;
     }

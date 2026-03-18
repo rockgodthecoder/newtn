@@ -1,13 +1,22 @@
 export const maxDuration = 60;
 
 import { createClient } from "@/utils/supabase/server";
+import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 import { waitUntil } from "@vercel/functions";
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+// Use service role key for background functions — no cookie context needed
+function getAdminClient() {
+  return createAdminClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+}
+
 async function updateProgress(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  supabase: ReturnType<typeof getAdminClient>,
   brainId: string,
   pct: number,
   step: string | null
@@ -97,7 +106,7 @@ async function buildBrain(
   brainId: string,
   brands: Array<{ id: string; url: string; role: string }>
 ) {
-  const supabase = await createClient();
+  const supabase = getAdminClient();
 
   try {
     await updateProgress(supabase, brainId, 10, "Initialising brain…");
