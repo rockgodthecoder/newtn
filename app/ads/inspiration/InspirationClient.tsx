@@ -191,13 +191,9 @@ function BrandTab({ ownBrandUrl, savedColors, brainId }: { ownBrandUrl: string |
     if (!res.ok) { setAssets("error"); return; }
     const data = await res.json() as BrandAssets;
     setAssets(data);
-    // Merge scraped colours into existing, deduplicated, then auto-save
-    if (data.colors.length > 0) {
-      const merged = [...new Set([...colors, ...data.colors])];
-      setColors(merged);
-      setSaved(false);
-      await save(merged);
-    }
+    const merged = [...new Set([...colors, ...data.colors])];
+    setColors(merged);
+    await save(merged);
   };
 
   if (!brainId) {
