@@ -126,31 +126,35 @@ export default function Sidebar() {
                 </p>
               </div>
             )}
-            {group.items.filter((item) => !(item as { requiresAuth?: boolean }).requiresAuth || authed).map((item) => {
+            {group.items.map((item) => {
+              const locked = !!(item as { requiresAuth?: boolean }).requiresAuth && !authed;
               const resolvedHref = authed && (item as { hrefAuthed?: string }).hrefAuthed
                 ? (item as { hrefAuthed?: string }).hrefAuthed!
                 : item.href;
-              const active = pathname === resolvedHref || pathname === item.href;
+              const active = !locked && (pathname === resolvedHref || pathname === item.href);
               return (
                 <Link
                   key={item.href}
-                  href={resolvedHref}
+                  href={locked ? "#" : resolvedHref}
+                  onClick={locked ? (e) => e.preventDefault() : undefined}
                   className="flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs font-medium transition-all"
                   style={
-                    active
+                    locked
+                      ? { color: "var(--text-secondary)", opacity: 0.35, cursor: "default" }
+                      : active
                       ? { background: "var(--accent-glow)", color: "var(--accent-light)" }
                       : { color: "var(--text-secondary)" }
                   }
                   onMouseEnter={(e) => {
-                    if (!active) (e.currentTarget as HTMLAnchorElement).style.color = "var(--text-primary)";
+                    if (!active && !locked) (e.currentTarget as HTMLAnchorElement).style.color = "var(--text-primary)";
                   }}
                   onMouseLeave={(e) => {
-                    if (!active) (e.currentTarget as HTMLAnchorElement).style.color = "var(--text-secondary)";
+                    if (!active && !locked) (e.currentTarget as HTMLAnchorElement).style.color = "var(--text-secondary)";
                   }}
                 >
                   <span className={active ? "text-[var(--accent-light)]" : ""}>{item.icon}</span>
                   <span className="flex-1 truncate">{item.label}</span>
-                  {(item as { badge?: string }).badge && (
+                  {(item as { badge?: string }).badge && !locked && (
                     <span
                       style={{ background: "var(--accent)", color: "white" }}
                       className="text-[9px] font-bold px-1.5 py-0.5 rounded-full leading-none flex-shrink-0"
@@ -193,17 +197,23 @@ export default function Sidebar() {
       className="fixed bottom-0 left-0 right-0 sm:hidden z-50 flex"
       style={{ background: "var(--surface)", borderTop: "1px solid var(--border)" }}
     >
-      {ALL_NAV_ITEMS.filter((item) => !(item as { requiresAuth?: boolean }).requiresAuth || authed).map((item) => {
+      {ALL_NAV_ITEMS.map((item) => {
+        const locked = !!(item as { requiresAuth?: boolean }).requiresAuth && !authed;
         const resolvedHref = authed && (item as { hrefAuthed?: string }).hrefAuthed
           ? (item as { hrefAuthed?: string }).hrefAuthed!
           : item.href;
-        const active = pathname === resolvedHref || pathname === item.href;
+        const active = !locked && (pathname === resolvedHref || pathname === item.href);
         return (
           <Link
             key={item.href}
-            href={resolvedHref}
+            href={locked ? "#" : resolvedHref}
+            onClick={locked ? (e) => e.preventDefault() : undefined}
             className="flex-1 flex flex-col items-center justify-center py-3 gap-1 text-[10px] font-medium transition-colors"
-            style={{ color: active ? "var(--accent-light)" : "var(--text-secondary)" }}
+            style={{
+              color: active ? "var(--accent-light)" : "var(--text-secondary)",
+              opacity: locked ? 0.35 : 1,
+              cursor: locked ? "default" : "pointer",
+            }}
           >
             <span style={{ color: active ? "var(--accent-light)" : "var(--text-secondary)" }}>
               {item.icon}
