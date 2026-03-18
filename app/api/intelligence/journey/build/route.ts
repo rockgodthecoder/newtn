@@ -151,9 +151,16 @@ Output a JSON array of stages:
   {
     "title": "Stage name (short, 2-5 words)",
     "position": 0,
-    "category": "awareness|consideration|conversion|retention|advocacy"
+    "category": "website|email|ads|organic|other"
   }
 ]
+
+Assign each stage a channel category:
+- "website" — touchpoints that happen on the brand's own website
+- "email" — email marketing, sequences, automations
+- "ads" — paid advertising (Meta, Google, TikTok, etc.)
+- "organic" — SEO, social media posts, word of mouth, PR
+- "other" — anything else (SMS, influencer, affiliate, offline, etc.)
 
 Positions start at 0 and increment by 1. Return ONLY valid JSON.`;
 

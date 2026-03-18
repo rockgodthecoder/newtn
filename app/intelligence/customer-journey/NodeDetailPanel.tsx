@@ -12,11 +12,11 @@ type Node = {
 };
 
 const CATEGORY_COLORS: Record<string, string> = {
-  awareness:     "#3b82f6",
-  consideration: "#f59e0b",
-  conversion:    "#22c55e",
-  retention:     "#8b5cf6",
-  advocacy:      "#ec4899",
+  website: "#3b82f6",
+  email:   "#f59e0b",
+  ads:     "#ec4899",
+  organic: "#22c55e",
+  other:   "#a1a1aa",
 };
 
 export default function NodeDetailPanel({ node, onClose }: { node: Node; onClose: () => void }) {

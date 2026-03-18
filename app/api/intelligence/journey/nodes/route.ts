@@ -43,9 +43,17 @@ Return a JSON object:
 {
   "title": "Stage name (2-5 words)",
   "position": <integer — where it fits best in the existing sequence>,
+  "category": "website|email|ads|organic|other",
   "explanation": "2-4 sentences explaining what happens at this stage and why it matters.",
   "tactics": ["Specific actionable tactic 1", "tactic 2", "tactic 3", "tactic 4", "tactic 5"]
 }
+
+Category options:
+- "website" — touchpoints on the brand's own website
+- "email" — email marketing, sequences, automations
+- "ads" — paid advertising (Meta, Google, TikTok, etc.)
+- "organic" — SEO, social posts, word of mouth, PR
+- "other" — SMS, influencer, affiliate, offline, etc.
 
 Return ONLY valid JSON.`;
 
