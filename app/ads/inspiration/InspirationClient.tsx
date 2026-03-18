@@ -147,6 +147,8 @@ function BrandTab({ ownBrandUrl, savedColors, savedFonts, savedAssets, brainId }
   const [hexError, setHexError] = useState(false);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editValue, setEditValue] = useState("");
+  const [editingColors, setEditingColors] = useState(false);
+  const [editingFonts, setEditingFonts] = useState(false);
   const [assets, setAssets] = useState<BrandAssets | "loading" | "error" | null>(
     savedAssets ? (savedAssets as BrandAssets) : null
   );
@@ -249,14 +251,14 @@ function BrandTab({ ownBrandUrl, savedColors, savedFonts, savedAssets, brainId }
       <div className="rounded-2xl p-5" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
         <div className="flex items-center justify-between mb-4">
           <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "var(--text-secondary)" }}>Brand Colours</p>
-          <button
-            onClick={() => save()}
-            disabled={saving}
-            className="text-xs font-semibold px-3 py-1.5 rounded-lg"
-            style={{ background: saved ? "var(--green)" : "var(--accent)", color: "white", opacity: saving ? 0.6 : 1 }}
-          >
-            {saving ? "Saving…" : saved ? "Saved ✓" : "Save"}
-          </button>
+          <div className="flex items-center gap-2">
+            <button onClick={() => { setEditingColors((v) => !v); setHexInput(""); setHexError(false); }} className="text-xs font-semibold px-3 py-1.5 rounded-lg" style={{ background: editingColors ? "var(--surface-2)" : "var(--surface-2)", border: `1px solid ${editingColors ? "var(--accent)" : "var(--border)"}`, color: editingColors ? "var(--accent-light)" : "var(--text-secondary)" }}>
+              {editingColors ? "Done" : "Edit"}
+            </button>
+            <button onClick={() => save()} disabled={saving} className="text-xs font-semibold px-3 py-1.5 rounded-lg" style={{ background: saved ? "var(--green)" : "var(--accent)", color: "white", opacity: saving ? 0.6 : 1 }}>
+              {saving ? "Saving…" : saved ? "Saved ✓" : "Save"}
+            </button>
+          </div>
         </div>
 
         <div className="flex flex-wrap gap-3 mb-4">
@@ -281,20 +283,22 @@ function BrandTab({ ownBrandUrl, savedColors, savedFonts, savedAssets, brainId }
                 </div>
               ) : (
                 <div className="w-12 h-12 rounded-xl relative" style={{ background: hex, border: "1px solid rgba(255,255,255,0.1)" }}>
-                  {/* Edit button */}
-                  <button
-                    onClick={() => startEdit(i)}
-                    className="absolute inset-0 w-full h-full rounded-xl items-center justify-center hidden group-hover:flex"
-                    style={{ background: "rgba(0,0,0,0.45)" }}
-                  >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                  </button>
-                  {/* Remove button */}
-                  <button
-                    onClick={() => removeColor(hex)}
-                    className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full items-center justify-center hidden group-hover:flex text-[10px] font-bold"
-                    style={{ background: "#ef4444", color: "white" }}
-                  >×</button>
+                  {editingColors && (
+                    <>
+                      <button
+                        onClick={() => startEdit(i)}
+                        className="absolute inset-0 w-full h-full rounded-xl items-center justify-center hidden group-hover:flex"
+                        style={{ background: "rgba(0,0,0,0.45)" }}
+                      >
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                      </button>
+                      <button
+                        onClick={() => removeColor(hex)}
+                        className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full items-center justify-center hidden group-hover:flex text-[10px] font-bold"
+                        style={{ background: "#ef4444", color: "white" }}
+                      >×</button>
+                    </>
+                  )}
                 </div>
               )}
               {editingIndex !== i && <span className="text-[9px] font-mono" style={{ color: "var(--text-secondary)" }}>{hex}</span>}
@@ -302,42 +306,46 @@ function BrandTab({ ownBrandUrl, savedColors, savedFonts, savedAssets, brainId }
           ))}
         </div>
 
-        {/* Hex input row */}
-        <div className="flex items-center gap-2">
-          <div className="flex items-center rounded-lg overflow-hidden flex-1" style={{ background: "var(--surface-2)", border: `1px solid ${hexError ? "#ef4444" : "var(--border)"}` }}>
-            <span className="pl-3 text-sm font-mono" style={{ color: "var(--text-secondary)" }}>#</span>
-            <input
-              value={hexInput}
-              onChange={(e) => { setHexInput(e.target.value.replace(/[^0-9a-fA-F]/g, "").slice(0, 6)); setHexError(false); }}
-              onKeyDown={(e) => e.key === "Enter" && submitHex()}
-              placeholder="e.g. FF5733"
-              maxLength={6}
-              className="flex-1 bg-transparent px-2 py-2.5 text-sm font-mono outline-none"
-              style={{ color: "var(--text-primary)" }}
-            />
-            {hexInput.length === 6 && <div className="w-6 h-6 rounded mr-2 flex-shrink-0" style={{ background: `#${hexInput}` }} />}
-          </div>
-          <button onClick={submitHex} className="text-xs font-semibold px-4 py-2.5 rounded-lg flex-shrink-0" style={{ background: "var(--accent)", color: "white" }}>Add</button>
-          <div className="relative w-9 h-9 rounded-lg overflow-hidden flex-shrink-0 cursor-pointer" style={{ background: "var(--surface-2)", border: "1px solid var(--border)" }} title="Pick colour" onClick={() => colorInputRef.current?.click()}>
-            <svg className="absolute inset-0 m-auto" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/></svg>
-            <input ref={colorInputRef} type="color" className="absolute inset-0 opacity-0 cursor-pointer w-full h-full" onChange={(e) => addColor(e.target.value)} />
-          </div>
-        </div>
-        {hexError && <p className="text-[11px] mt-1.5" style={{ color: "#ef4444" }}>Enter a valid 6-digit hex code</p>}
+        {/* Hex input row — only in edit mode */}
+        {editingColors && (
+          <>
+            <div className="flex items-center gap-2 mt-3">
+              <div className="flex items-center rounded-lg overflow-hidden flex-1" style={{ background: "var(--surface-2)", border: `1px solid ${hexError ? "#ef4444" : "var(--border)"}` }}>
+                <span className="pl-3 text-sm font-mono" style={{ color: "var(--text-secondary)" }}>#</span>
+                <input
+                  value={hexInput}
+                  onChange={(e) => { setHexInput(e.target.value.replace(/[^0-9a-fA-F]/g, "").slice(0, 6)); setHexError(false); }}
+                  onKeyDown={(e) => e.key === "Enter" && submitHex()}
+                  placeholder="e.g. FF5733"
+                  maxLength={6}
+                  className="flex-1 bg-transparent px-2 py-2.5 text-sm font-mono outline-none"
+                  style={{ color: "var(--text-primary)" }}
+                />
+                {hexInput.length === 6 && <div className="w-6 h-6 rounded mr-2 flex-shrink-0" style={{ background: `#${hexInput}` }} />}
+              </div>
+              <button onClick={submitHex} className="text-xs font-semibold px-4 py-2.5 rounded-lg flex-shrink-0" style={{ background: "var(--accent)", color: "white" }}>Add</button>
+              <div className="relative w-9 h-9 rounded-lg overflow-hidden flex-shrink-0 cursor-pointer" style={{ background: "var(--surface-2)", border: "1px solid var(--border)" }} title="Pick colour" onClick={() => colorInputRef.current?.click()}>
+                <svg className="absolute inset-0 m-auto" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/></svg>
+                <input ref={colorInputRef} type="color" className="absolute inset-0 opacity-0 cursor-pointer w-full h-full" onChange={(e) => addColor(e.target.value)} />
+              </div>
+            </div>
+            {hexError && <p className="text-[11px] mt-1.5" style={{ color: "#ef4444" }}>Enter a valid 6-digit hex code</p>}
+          </>
+        )}
       </div>
 
       {/* Typography */}
       <div className="rounded-2xl p-5" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
         <div className="flex items-center justify-between mb-4">
           <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "var(--text-secondary)" }}>Typography</p>
-          <button
-            onClick={() => save()}
-            disabled={saving}
-            className="text-xs font-semibold px-3 py-1.5 rounded-lg"
-            style={{ background: saved ? "var(--green)" : "var(--accent)", color: "white", opacity: saving ? 0.6 : 1 }}
-          >
-            {saving ? "Saving…" : saved ? "Saved ✓" : "Save"}
-          </button>
+          <div className="flex items-center gap-2">
+            <button onClick={() => { setEditingFonts((v) => !v); setFontInput(""); }} className="text-xs font-semibold px-3 py-1.5 rounded-lg" style={{ background: "var(--surface-2)", border: `1px solid ${editingFonts ? "var(--accent)" : "var(--border)"}`, color: editingFonts ? "var(--accent-light)" : "var(--text-secondary)" }}>
+              {editingFonts ? "Done" : "Edit"}
+            </button>
+            <button onClick={() => save()} disabled={saving} className="text-xs font-semibold px-3 py-1.5 rounded-lg" style={{ background: saved ? "var(--green)" : "var(--accent)", color: "white", opacity: saving ? 0.6 : 1 }}>
+              {saving ? "Saving…" : saved ? "Saved ✓" : "Save"}
+            </button>
+          </div>
         </div>
 
         {fonts.length > 0 && (
@@ -348,43 +356,47 @@ function BrandTab({ ownBrandUrl, savedColors, savedFonts, savedAssets, brainId }
                   <p className="text-sm font-semibold" style={{ color: "var(--text-primary)", fontFamily: `"${font}", sans-serif` }}>{font}</p>
                   <p className="text-xs" style={{ color: "var(--text-secondary)", fontFamily: `"${font}", sans-serif` }}>Aa Bb Cc 123</p>
                 </div>
-                <button
-                  onClick={() => { setFonts((p) => p.filter((_, idx) => idx !== i)); setSaved(false); }}
-                  className="w-6 h-6 rounded-full items-center justify-center hidden group-hover:flex text-[11px] font-bold flex-shrink-0"
-                  style={{ background: "#ef4444", color: "white" }}
-                >×</button>
+                {editingFonts && (
+                  <button
+                    onClick={() => { setFonts((p) => p.filter((_, idx) => idx !== i)); setSaved(false); }}
+                    className="w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold flex-shrink-0"
+                    style={{ background: "#ef4444", color: "white" }}
+                  >×</button>
+                )}
               </div>
             ))}
           </div>
         )}
 
-        <div className="flex gap-2">
-          <input
-            value={fontInput}
-            onChange={(e) => setFontInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && fontInput.trim()) {
+        {editingFonts && (
+          <div className="flex gap-2">
+            <input
+              value={fontInput}
+              onChange={(e) => setFontInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && fontInput.trim()) {
+                  const name = fontInput.trim();
+                  if (!fonts.includes(name)) { setFonts((p) => [...p, name]); setSaved(false); }
+                  setFontInput("");
+                }
+              }}
+              placeholder="Font name, e.g. Playfair Display"
+              className="flex-1 rounded-lg px-3 py-2.5 text-sm outline-none"
+              style={{ background: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
+              onFocus={(e) => (e.currentTarget.style.borderColor = "var(--accent)")}
+              onBlur={(e) => (e.currentTarget.style.borderColor = "var(--border)")}
+            />
+            <button
+              onClick={() => {
                 const name = fontInput.trim();
-                if (!fonts.includes(name)) { setFonts((p) => [...p, name]); setSaved(false); }
+                if (name && !fonts.includes(name)) { setFonts((p) => [...p, name]); setSaved(false); }
                 setFontInput("");
-              }
-            }}
-            placeholder="Font name, e.g. Playfair Display"
-            className="flex-1 rounded-lg px-3 py-2.5 text-sm outline-none"
-            style={{ background: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
-            onFocus={(e) => (e.currentTarget.style.borderColor = "var(--accent)")}
-            onBlur={(e) => (e.currentTarget.style.borderColor = "var(--border)")}
-          />
-          <button
-            onClick={() => {
-              const name = fontInput.trim();
-              if (name && !fonts.includes(name)) { setFonts((p) => [...p, name]); setSaved(false); }
-              setFontInput("");
-            }}
-            className="text-xs font-semibold px-4 py-2.5 rounded-lg flex-shrink-0"
-            style={{ background: "var(--accent)", color: "white" }}
-          >Add</button>
-        </div>
+              }}
+              className="text-xs font-semibold px-4 py-2.5 rounded-lg flex-shrink-0"
+              style={{ background: "var(--accent)", color: "white" }}
+            >Add</button>
+          </div>
+        )}
       </div>
 
       {/* Scraped assets — only shown after analyse */}
