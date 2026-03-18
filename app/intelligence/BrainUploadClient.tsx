@@ -88,6 +88,10 @@ export default function BrainUploadClient({
 
 // ─── Brand Column ─────────────────────────────────────────────────────────────
 
+function extractDomain(url: string): string {
+  try { return new URL(url.startsWith("http") ? url : `https://${url}`).hostname.replace(/^www\./, ""); } catch { return url; }
+}
+
 function BrandColumn({
   brand,
   brainId,
@@ -106,17 +110,22 @@ function BrandColumn({
   onRemove: (id: string) => void;
 }) {
   const [name, setName] = useState(brand.name ?? "");
-  const [nameSaving, setNameSaving] = useState(false);
+  const [url, setUrl] = useState(brand.url ?? "");
+  const [saving, setSaving] = useState(false);
 
-  const saveName = async (value: string) => {
-    setNameSaving(true);
+  const saveField = async (field: "name" | "url", value: string) => {
+    setSaving(true);
     await fetch(`/api/intelligence/brain/brands/${brand.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: value }),
+      body: JSON.stringify({ [field]: value }),
     });
-    setNameSaving(false);
+    setSaving(false);
   };
+
+  const displayLabel = isOwn
+    ? (url ? extractDomain(url) : "Your Brand")
+    : null;
 
   return (
     <div className="rounded-2xl overflow-hidden flex flex-col" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
@@ -124,21 +133,33 @@ function BrandColumn({
       <div className="px-4 py-4" style={{ borderBottom: "1px solid var(--border)" }}>
         <p className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: "var(--text-secondary)" }}>{label}</p>
         {isOwn ? (
-          <p className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>Your Brand</p>
+          <div className="flex items-center gap-2">
+            <input
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              onBlur={(e) => saveField("url", e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && (e.currentTarget as HTMLInputElement).blur()}
+              placeholder="yourbrand.com"
+              className="flex-1 bg-transparent text-sm font-semibold outline-none"
+              style={{ color: url ? "var(--text-primary)" : "var(--text-secondary)" }}
+            />
+            {saving && <Spinner />}
+          </div>
         ) : (
           <div className="flex items-center gap-2">
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
-              onBlur={(e) => saveName(e.target.value)}
+              onBlur={(e) => saveField("name", e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && (e.currentTarget as HTMLInputElement).blur()}
               placeholder="Competitor name…"
               className="flex-1 bg-transparent text-sm font-semibold outline-none"
               style={{ color: "var(--text-primary)" }}
             />
-            {nameSaving && <Spinner />}
+            {saving && <Spinner />}
           </div>
         )}
+        {displayLabel && <p className="text-xs mt-0.5" style={{ color: "var(--text-secondary)" }}>{displayLabel}</p>}
       </div>
 
       {/* Upload sections */}
