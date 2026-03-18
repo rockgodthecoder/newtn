@@ -29,12 +29,12 @@ export async function proxy(request: NextRequest) {
 
     const { data: { user } } = await supabase.auth.getUser();
 
-    // Protect all /intelligence routes except the login page
-    if (
-      pathname.startsWith("/intelligence") &&
-      pathname !== "/intelligence/login" &&
-      !user
-    ) {
+    // Protect /intelligence and /ads routes
+    const isProtected =
+      (pathname.startsWith("/intelligence") && pathname !== "/intelligence/login") ||
+      pathname.startsWith("/ads");
+
+    if (isProtected && !user) {
       return NextResponse.redirect(new URL("/intelligence/login", request.url));
     }
 
@@ -45,7 +45,7 @@ export async function proxy(request: NextRequest) {
   } catch {
     // If Supabase is unreachable or misconfigured, allow login page through
     // and block access to protected routes
-    if (pathname !== "/intelligence/login") {
+    if (pathname !== "/intelligence/login" && !pathname.startsWith("/ads/") === false) {
       return NextResponse.redirect(new URL("/intelligence/login", request.url));
     }
   }
@@ -54,5 +54,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/intelligence/:path*"],
+  matcher: ["/intelligence/:path*", "/ads/:path*"],
 };
